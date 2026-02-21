@@ -287,6 +287,14 @@ class HealingCatWindow:
                 self.root.destroy()
                 return
 
+            if self.game_state and self.game_state.game_phase == "ending":
+                if self.root.state() != "withdrawn":
+                    self.root.withdraw()
+                self.root.after(500, self.animate)
+                return
+            elif self.root.state() == "withdrawn":
+                self.root.deiconify()
+
             self.root.lift()
             self.root.wm_attributes("-topmost", True)
 

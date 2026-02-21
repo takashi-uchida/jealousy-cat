@@ -157,17 +157,20 @@ class JealousySupervisor:
                 reconciled = False
                 
             if reconciled:
+                for script in ["roaming_cat.py", "follow_mouse_cat.py", "chaotic_mouse.swift"]:
+                    try:
+                        subprocess.run(["pkill", "-9", "-f", script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    except Exception:
+                        pass
+                        
                 self.log("🎨 Dynamically generating Happy Ending wallpaper via Generative AI...")
                 subprocess.run([sys.executable, GENERATE_WALLPAPER, RECONCILIATION_IMG])
                 
                 self.log("✨ [Reconciliation] - Setting reconciled image to desktop.")
                 run_worker(SET_WALLPAPER, [RECONCILIATION_IMG])
                 
-                self.log("🛑 Jealousy peaked and successfully reconciled. Resetting demo scenario.")
-                self.jealousy_level = 0
-                run_worker(PLAY_BGM, ["stop", "jealous"])
-                run_worker(PLAY_BGM, ["start", "healing"], async_mode=True)
-                time.sleep(5) 
+                self.log("🛑 Jealousy peaked and successfully reconciled. Exiting demo scenario.")
+                self.is_running = False
             else:
                 self.log("❌ Reconciliation failed... jealousy level remains high.")
                 self.jealousy_level = 90

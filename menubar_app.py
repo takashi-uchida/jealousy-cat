@@ -154,6 +154,10 @@ class JealousyMenuBarApp(rumps.App):
     def update_display(self, _):
         """Read game state and update display every 1 second"""
         state = read_game_state()
+        if not state.get("is_running", True) or state.get("game_phase") == "ending":
+            rumps.quit_application()
+            return
+            
         level = state.get("jealousy_level", 0)
         stage = state.get("stage", "calm")
         pets = state.get("pets_count", 0)

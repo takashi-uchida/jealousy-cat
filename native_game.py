@@ -333,6 +333,19 @@ def run_reconciliation():
     if success:
         log(f"🎉 Reconciliation successful! User said: {text}")
 
+        # Immediately hide cats
+        game.jealousy_level = 0
+        game.pets_count = 0
+        game.game_phase = "ending"
+        game._write_state()
+
+        # Kill any active interference scripts immediately
+        for script in ["roaming_cat.py", "follow_mouse_cat.py", "chaotic_mouse.swift"]:
+            try:
+                subprocess.run(["pkill", "-9", "-f", script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except Exception:
+                pass
+
         log("🎨 Generating Happy Ending wallpaper...")
         try:
             run_script(GENERATE_WALLPAPER, [RECONCILIATION_IMG], async_mode=False)
@@ -343,20 +356,15 @@ def run_reconciliation():
         run_script(PLAY_BGM, ["stop", "jealous"])
         run_script(PLAY_BGM, ["start", "healing"], async_mode=True)
 
-        game.jealousy_level = 0
-        game.pets_count = 0
-        game.game_phase = "ending"
-        game._write_state()
-
         run_script(OVERLAY_EFFECTS, ["popup", str(SYSTEM_CAT_ICON), "🎉 Happy End", "You've reconciled with the jealous cat!\nThe desktop wallpaper has been updated.", "default"], async_mode=True)
         notify("🎉 Jealousy.sys — Happy End!", "Reconciled with the jealous cat! Desktop updated.")
 
         log("✨ Game Clear! Desktop wallpaper set.")
 
         time.sleep(8)
-        game.game_phase = "playing"
+        log("👋 Enjoy your new desktop. Exiting game...")
+        game.is_running = False
         game._write_state()
-        log("🔄 Game reset.")
     else:
         log("❌ Reconciliation failed...")
         game.jealousy_level = 90
