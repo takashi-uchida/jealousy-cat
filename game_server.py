@@ -389,6 +389,20 @@ class GameHandler(SimpleHTTPRequestHandler):
                 "game_phase": game.game_phase,
             })
 
+        elif parsed.path == "/api/escape":
+            game.game_phase = "playing"
+            # ブラウザから消えたので、OSネイティブ版のゲーム本体を起動
+            native_game_script = os.path.join(BASE_DIR, "native_game.py")
+            if os.path.exists(native_game_script):
+                # --sensor モードなどで起動
+                log_msg = "🚀 猫がブラウザを脱出！ ネイティブ版を起動します..."
+                print(log_msg)
+                game.add_event(log_msg)
+                subprocess.Popen([sys.executable, native_game_script, "--sensor"])
+                self._json_response({"status": "escaped"})
+            else:
+                self._json_response({"status": "error", "message": "native_game.py not found"}, 404)
+
         elif parsed.path == "/api/restart":
             game.jealousy_level = 0
             game.pets_count = 0

@@ -76,9 +76,7 @@ class ReconcileApp:
         # メッセージ
         self.lbl_msg = tk.Label(
             frame, 
-            text="もう我慢できないニャ！
-ボクのこと、どう思ってるの？
-ちゃんと説明してよ！",
+            text="もう我慢できないニャ！\nボクのこと、どう思ってるの？\nちゃんと説明してよ！",
             font=("Helvetica", 14, "bold"),
             bg="#2C2C2C", fg="#FFD700",
             justify="center"
@@ -90,6 +88,11 @@ class ReconcileApp:
         self.entry.pack(pady=10)
         self.entry.bind("<Return>", lambda e: self.check_reconcile())
         self.entry.focus_set()
+        
+        # 強制フォーカス（macOSなどで後ろに行かないように）
+        self.root.lift()
+        self.root.focus_force()
+        self.entry.focus_force()
 
         # ヒント
         self.lbl_hint = tk.Label(
@@ -141,10 +144,7 @@ class ReconcileApp:
         score = sum(1 for kw in RECONCILE_KEYWORDS if kw in text.lower())
 
         if score >= 1:
-            messagebox.showinfo("和解成功", f"「{text}」...？
-ほんとに？
-
-...わかった、許してあげるニャ。")
+            messagebox.showinfo("和解成功", f"「{text}」...？\nほんとに？\n\n...わかった、許してあげるニャ。", parent=self.root)
             print(text) # 標準出力に結果を出して親プロセスに渡す
             self.root.destroy()
             sys.exit(0) # Success
@@ -163,8 +163,7 @@ class ReconcileApp:
                 ]
                 self.lbl_msg.config(text=random.choice(msgs), fg="#FF4444")
             else:
-                messagebox.showerror("交渉決裂", "もう知らない！
-プイッ！")
+                messagebox.showerror("交渉決裂", "もう知らない！\nプイッ！")
                 self.root.destroy()
                 sys.exit(1) # Failure
 

@@ -957,8 +957,9 @@
             <h2>😾 <span class="label-text" id="system-cat-label">System Cat</span></h2>
 
             <!-- 監視情報 -->
-            <div id="monitoring-info" style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.5rem; padding: 0.4rem 0.8rem; background: rgba(0,0,0,0.2); border-radius: 8px; border-left: 2px solid var(--accent-cyan); display: none;">
-                <span style="color: var(--accent-cyan); font-weight: bold;">[WATCHING]</span> 
+            <div id="monitoring-info"
+                style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.5rem; padding: 0.4rem 0.8rem; background: rgba(0,0,0,0.2); border-radius: 8px; border-left: 2px solid var(--accent-cyan); display: none;">
+                <span style="color: var(--accent-cyan); font-weight: bold;">[WATCHING]</span>
                 <span id="active-app-name">Unknown</span>
             </div>
 
@@ -1042,6 +1043,14 @@
         let totalEvents = 0;
         let pollingInterval = null;
         let lastEventCount = 0;
+        let isCatChasedOut = false;
+
+        // 猫の移動用
+        let catX = 0;
+        let catY = 0;
+        let targetX = 0;
+        let targetY = 0;
+        let catSpeed = 0.05;
 
         const PET_EMOJIS = ['💖', '✨', '💕', '🌸', '💫', '🫶', '😻', '🐾'];
         const PURR_FACES = ['😺', '😸', '😻', '🥰', '😽', '💖'];
@@ -1068,16 +1077,57 @@
             petsCount = 0;
             totalEvents = 0;
             lastEventCount = 0;
+            isCatChasedOut = false;
             document.getElementById('pets-count').textContent = '0';
             document.getElementById('purr-level').textContent = '😺';
             document.getElementById('meter-bar').style.width = '0%';
             document.getElementById('meter-value').textContent = '0';
             document.getElementById('stage-badge').textContent = '😺 平穏';
-            document.getElementById('dialogue-text').textContent = '...ふぅん、始まったんだ。';
+            document.getElementById('dialogue-text').textContent = '...ふぅん、始まったんだ。その子を捕まえられるかな？';
             document.getElementById('event-log').innerHTML = '';
 
             showScreen('game');
             startPolling();
+            initCatMovement();
+        }
+
+        // ══════════════════════════════════════
+        // Cat Movement (Chasing)
+        // ══════════════════════════════════════
+        function initCatMovement() {
+            const area = document.getElementById('cat-area');
+            catX = area.clientWidth / 2;
+            catY = area.clientHeight / 2;
+            pickNewTarget();
+            requestAnimationFrame(updateCatPosition);
+        }
+
+        function pickNewTarget() {
+            const area = document.getElementById('cat-area');
+            targetX = Math.random() * (area.clientWidth - 100) + 50;
+            targetY = Math.random() * (area.clientHeight - 100) + 50;
+        }
+
+        function updateCatPosition() {
+            if (isCatChasedOut) return;
+
+            const img = document.getElementById('cat-image');
+
+            // イージングで移動
+            catX += (targetX - catX) * catSpeed;
+            catY += (targetY - catY) * catSpeed;
+
+            img.style.position = 'absolute';
+            img.style.left = `${catX - img.clientWidth / 2}px`;
+            img.style.top = `${catY - img.clientHeight / 2}px`;
+
+            // 目的地に近づいたら新しい目的地へ
+            if (Math.abs(catX - targetX) < 10 && Math.abs(catY - targetY) < 10) {
+                pickNewTarget();
+                catSpeed = 0.02 + Math.random() * 0.04;
+            }
+
+            requestAnimationFrame(updateCatPosition);
         }
 
         // ══════════════════════════════════════
@@ -1087,12 +1137,24 @@
         const catImage = document.getElementById('cat-image');
 
         catArea.addEventListener('click', async (e) => {
+            if (isCatChasedOut) return;
+
             petsCount++;
             document.getElementById('pets-count').textContent = petsCount;
 
+            // 猫が逃げる！
+            pickNewTarget();
+            catSpeed = 0.15; // 叩かれたら速く逃げる
+
             // Visual feedback
-            catImage.style.transform = 'scale(0.93)';
-            setTimeout(() => { catImage.style.transform = ''; }, 120);
+            catImage.style.transform = 'scale(0.8) rotate(' + (Math.random() * 20 - 10) + 'deg)';
+            setTimeout(() => { catImage.style.transform = ''; }, 150);
+
+            // 脱出チェック
+            if (petsCount >= 5) {
+                escapeToNative();
+                return;
+            }
 
             // Purr face
             const face = PURR_FACES[Math.min(Math.floor(petsCount / 3), PURR_FACES.length - 1)];
@@ -1112,11 +1174,9 @@
                     updateMeter(data.jealousy_level, data.stage);
                 }
             } catch (e) {
-                // Standalone mode: fake jealousy
                 const fakeLevel = Math.min(petsCount * 8, 105);
                 updateMeter(fakeLevel, getStageFromLevel(fakeLevel));
             }
-
 
             // Screen shake at high levels
             const level = parseInt(document.getElementById('meter-value').textContent);
@@ -1125,6 +1185,25 @@
                 setTimeout(() => document.body.classList.remove('screen-shake'), 400);
             }
         });
+
+        async function escapeToNative() {
+            isCatChasedOut = true;
+            updateDialogue('あ、逃げ出した！ ブラウザの外へ行っちゃったみたい...');
+            catImage.style.transition = 'all 0.5s ease-in';
+            catImage.style.transform = 'scale(0) translateY(-200px)';
+            catImage.style.opacity = '0';
+
+            try {
+                await fetch('/api/escape', { method: 'POST' });
+            } catch (e) {
+                console.error('Failed to trigger native escape');
+            }
+
+            setTimeout(() => {
+                alert('猫がOSのデスクトップに逃げ込みました！ 画面を探してみてね。');
+            }, 800);
+        }
+
 
         function spawnPetEmoji(x, y) {
             const emoji = document.createElement('div');

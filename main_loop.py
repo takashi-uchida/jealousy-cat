@@ -33,6 +33,7 @@ GENERATE_WALLPAPER = os.path.join(SCRIPTS_DIR, "generate_wallpaper.py")
 FOLLOW_MOUSE_CAT = os.path.join(SCRIPTS_DIR, "follow_mouse_cat.py")
 CAT_POUNCE = os.path.join(SCRIPTS_DIR, "cat_pounce.swift")
 CAT_SCRATCH = os.path.join(SCRIPTS_DIR, "cat_scratch.py")
+JEALOUS_BROWSER = os.path.join(SCRIPTS_DIR, "jealous_browser_hijack.py")
 
 # 新しい OS Hacks 用のスクリプトパス
 TOGGLE_THEME = os.path.join(SCRIPTS_DIR, "os_hacks", "toggle_dark_mode.sh")
@@ -125,6 +126,11 @@ class JealousySupervisor:
             run_worker(HIDE_WIN)
             run_worker(TOGGLE_THEME, async_mode=True)
             run_worker(ROAMING_CAT, async_mode=True)
+            
+            # 20%の確率でブラウザをハイジャックする
+            if random.random() < 0.2:
+                self.log("😼 [Obsession] - 浮気調査のためにブラウザを乗っ取ります...")
+                run_worker(JEALOUS_BROWSER, async_mode=True)
             
         # Level 3: Rage
         elif 80 <= self.jealousy_level < 100:

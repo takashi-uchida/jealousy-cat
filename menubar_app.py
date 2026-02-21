@@ -65,10 +65,13 @@ class JealousyMenuBarApp(rumps.App):
         self.level_item = rumps.MenuItem("嫉妬レベル: ░░░░░░░░░░ 0%")
         self.stage_item = rumps.MenuItem("ステージ: 😺 平穏")
         self.pets_item = rumps.MenuItem("ナデナデ回数: 0 回")
+        self.pet_action_item = rumps.MenuItem("👋 ナデナデする", callback=self.on_pet)
         self.reconcile_item = rumps.MenuItem("🐟 仲直りする", callback=self.on_reconcile)
         self.quit_item = rumps.MenuItem("🛑 ゲーム終了", callback=self.on_quit)
 
         self.menu = [
+            self.pet_action_item,
+            None, # separator
             self.level_item,
             self.stage_item,
             self.pets_item,
@@ -84,6 +87,41 @@ class JealousyMenuBarApp(rumps.App):
             subtitle="ここから見てるよ...",
             message="嫉妬猫はメニューバーに潜んでいます。浮気したら許さないからね。",
             sound=True
+        )
+
+    def on_pet(self, _):
+        """嫉妬猫をナデナデする"""
+        state = read_game_state()
+        level = state.get("jealousy_level", 0)
+        
+        # 嫉妬レベルを下げる（機嫌をとる）
+        import random
+        decrease = random.randint(3, 8)
+        new_level = max(0, level - decrease)
+        state["jealousy_level"] = new_level
+        
+        # 状態保存
+        try:
+            with open(SHARED_STATE_FILE, "w") as f:
+                json.dump(state, f)
+        except Exception:
+            pass
+            
+        # 反応
+        msgs = [
+            "ふん、悪くないわね。",
+            "もっと撫でなさいよ。",
+            "別に嬉しくないんだからね！",
+            "...ゴロゴロ...",
+            "浮気相手よりボクの方がいいでしょ？"
+        ]
+        msg = random.choice(msgs)
+        
+        rumps.notification(
+            title="🐈‍⬛ Jealousy.sys",
+            subtitle="ナデナデしました",
+            message=msg,
+            sound=False
         )
 
     def on_reconcile(self, _):
@@ -136,7 +174,7 @@ class JealousyMenuBarApp(rumps.App):
         filled = level // 10
         empty = 10 - filled
         self.level_item.title = f"嫉妬レベル: {'█' * filled}{'░' * empty} {level}%"
-        self.stage_item.title = f"ステージ: {icon} {name}"
+        self.stage_item.title = f"ステージ: {emoji_icon} {name}"
         self.pets_item.title = f"ナデナデ回数: {pets} 回"
 
 

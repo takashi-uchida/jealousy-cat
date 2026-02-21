@@ -17,17 +17,19 @@ if not os.path.exists(GUI_SCRIPT):
 
 def show_reconcile_sequence():
     """tkinter版のGUIを起動"""
-    # スクリプトが見つからない場合は従来のAppleScriptでフォールバック...はせずにエラーにするか、
-    # 簡易なinputで済ませる
+    print(f"Debug: Trying to launch GUI script at: {GUI_SCRIPT}")
     if not os.path.exists(GUI_SCRIPT):
-        print(f"Error: GUI script not found at {GUI_SCRIPT}")
+        print(f"Error: GUI script NOT FOUND at {GUI_SCRIPT}")
+        # Try to find it recursively? No, just fail explicitly.
         return False, ""
 
     try:
         # GUIスクリプトを実行
-        # stdoutにユーザーの入力テキストが出力される
+        cmd = [sys.executable, GUI_SCRIPT]
+        print(f"Debug: Running command: {cmd}")
+        
         result = subprocess.run(
-            [sys.executable, GUI_SCRIPT],
+            cmd,
             capture_output=True, text=True
         )
         
@@ -37,6 +39,8 @@ def show_reconcile_sequence():
             user_text = result.stdout.strip().split('\n')[-1] if result.stdout.strip() else "仲直り"
             return True, user_text
         else:
+            if result.stderr:
+                print(f"❌ GUI Error: {result.stderr}")
             return False, ""
             
     except Exception as e:

@@ -30,6 +30,9 @@ fi
 echo "📥 Installing macOS specific dependencies (pyobjc, pyautogui, pyaudio)..."
 pip install pyobjc pyautogui pyaudio
 
+echo "🌐 Installing Playwright Chromium for computer-use-preview..."
+playwright install chromium
+
 echo "🔍 Checking macOS Permissions..."
 python3 permissions_check.py
 

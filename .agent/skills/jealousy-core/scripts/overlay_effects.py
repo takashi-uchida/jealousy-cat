@@ -37,6 +37,11 @@ class OverlayEffect:
         )
         self.canvas.pack(fill="both", expand=True)
         
+        # 強制的に最前面へ
+        self.root.lift()
+        self.root.attributes("-topmost", True)
+        self.root.focus_force()
+
         # 終了タイマー
         self.root.after(int(duration * 1000), self.close)
         
@@ -148,9 +153,64 @@ class TypeMessageEffect(OverlayEffect):
         self.canvas.itemconfig(self.text_id, text=new_text)
         self.root.after(500, self.blink_cursor)
 
+class PopupEffect(OverlayEffect):
+    def __init__(self, image_path, title, message, sound_path=None, duration=3.0):
+        super().__init__(duration=duration)
+        self.image_path = image_path
+        self.title = title
+        self.message = message
+        self.sound_path = sound_path
+        
+        # 半透明の黒背景（シミュレーション）
+        # tkinterのcanvasでalphaは難しいので、stipple="gray50"などで代用するか
+        # 全画面黒背景（透過ウィンドウ設定済み）の上に描画する
+        
+        cx = self.screen_w // 2
+        cy = self.screen_h // 2
+        
+        # 背景プレート
+        self.canvas.create_rectangle(
+            cx - 300, cy - 200, cx + 300, cy + 200,
+            fill="#222222", outline="#FFD700", width=4
+        )
+        
+        # 画像
+        self.photo = None
+        if os.path.exists(self.image_path):
+            try:
+                img = Image.open(self.image_path).convert("RGBA")
+                img = img.resize((128, 128), Image.LANCZOS)
+                self.photo = ImageTk.PhotoImage(img)
+                self.canvas.create_image(cx, cy - 50, image=self.photo, anchor="center")
+            except Exception:
+                pass
+        else:
+            self.canvas.create_text(cx, cy - 50, text="🐈‍⬛", font=("Arial", 80), fill="white")
+
+        # タイトル
+        self.canvas.create_text(
+            cx, cy - 150, text=self.title,
+            font=("Helvetica", 24, "bold"), fill="#FFD700", anchor="center"
+        )
+        
+        # メッセージ
+        self.canvas.create_text(
+            cx, cy + 80, text=self.message,
+            font=("Helvetica", 18), fill="white", anchor="center", width=500
+        )
+        
+        # サウンド再生
+        if self.sound_path and os.path.exists(self.sound_path):
+            import subprocess
+            subprocess.Popen(["afplay", self.sound_path])
+        elif self.sound_path == "default":
+            # システム音
+            import subprocess
+            subprocess.Popen(["afplay", "/System/Library/Sounds/Ping.aiff"])
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python overlay_effects.py [scratch|type] [args...]")
+        print("Usage: python overlay_effects.py [scratch|type|popup] [args...]")
         sys.exit(1)
 
     mode = sys.argv[1]
@@ -174,4 +234,14 @@ if __name__ == "__main__":
         else:
             msg = "Don't ignore me..."
         app = TypeMessageEffect(msg)
+        app.run()
+
+    elif mode == "popup":
+        # python overlay_effects.py popup img_path title message [sound_path]
+        img = sys.argv[2] if len(sys.argv) > 2 else ""
+        title = sys.argv[3] if len(sys.argv) > 3 else "Notification"
+        msg = sys.argv[4] if len(sys.argv) > 4 else ""
+        snd = sys.argv[5] if len(sys.argv) > 5 else None
+        
+        app = PopupEffect(img, title, msg, snd)
         app.run()

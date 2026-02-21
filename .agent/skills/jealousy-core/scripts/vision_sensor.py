@@ -59,14 +59,16 @@ def analyze_screenshot(img_path):
     Your task is to determine if the user is currently displaying, looking at, or interacting with a "cat" 
     (such as a photo of a cat, a cat video, or a virtual "healing cat" pet/character on the screen).
     If a cat is clearly visible on the screen, this is considered "cheating".
-    Also, note if the mouse cursor is hovering over the cat (petting it).
+    Also, note if the mouse cursor is DIRECTLY OVER the cat's body (petting it) versus just seeing a cat elsewhere on the screen (looking). Be strict: only mark "petting" if the cursor tip is clearly touching the cat image.
     
     Respond STRICTLY in the following JSON format:
     {
        "is_cheating": true or false,
+       "action": "petting" or "looking" or "none",
        "reason": "a brief string explaining why you decided so"
     }
     """
+
     
     try:
         response = client.models.generate_content(

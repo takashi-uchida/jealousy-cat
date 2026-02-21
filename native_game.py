@@ -24,6 +24,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS_DIR = os.path.join(BASE_DIR, ".agent", "skills", "jealousy-core", "scripts")
 ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 SHARED_STATE_FILE = os.path.join(BASE_DIR, ".game_state.json")
+RECONCILE_FLAG_FILE = os.path.join(BASE_DIR, ".reconcile_request")
 
 # スクリプトパス
 CHAOTIC_MOUSE   = os.path.join(SCRIPTS_DIR, "chaotic_mouse.swift")
@@ -42,7 +43,10 @@ TERMINAL_GHOST  = os.path.join(SCRIPTS_DIR, "os_hacks", "terminal_ghost.sh")
 PLAY_BGM        = os.path.join(SCRIPTS_DIR, "play_bgm.sh")
 GENERATE_WALLPAPER = os.path.join(SCRIPTS_DIR, "generate_wallpaper.py")
 LIVE_RECONCILIATION = os.path.join(SCRIPTS_DIR, "live_reconciliation.py")
+JEALOUS_BROWSER = os.path.join(SCRIPTS_DIR, "jealous_browser_hijack.py")
 RECONCILIATION_IMG = os.path.join(BASE_DIR, ".agent", "skills", "jealousy-core", "assets", "reconciliation.png")
+OVERLAY_EFFECTS = os.path.join(SCRIPTS_DIR, "overlay_effects.py")
+SYSTEM_CAT_ICON = os.path.join(BASE_DIR, "assets", "system_cat_icon.png")
 
 
 # ══════════════════════════════════════════
@@ -57,6 +61,7 @@ class NativeGameState:
         self.is_running = True
         self.game_phase = "playing"   # playing | reconciling | ending
         self.last_action_time = 0
+        self.current_stage = "calm"
         self.lock = threading.Lock()
         self._write_state()
 
@@ -87,30 +92,66 @@ class NativeGameState:
         except Exception:
             pass
 
-    def on_pet(self):
-        """癒やし猫がナデナデされた時のコールバック"""
+    def on_pet(self, action="petting"):
+        """癒やし猫がナデナデされた時、または浮気検知された時のコールバック"""
         with self.lock:
             self.pets_count += 1
-            increase = random.randint(5, 12)
+            increase = random.randint(5, 12) if action == "petting" else random.randint(4, 9)
             self.jealousy_level = min(self.jealousy_level + increase, 105)
             level = self.jealousy_level
-            stage = self.get_stage_key()
+            new_stage = self.get_stage_key()
+            
+            stage_changed = (new_stage != self.current_stage)
+            self.current_stage = new_stage
+            
             self._write_state()
 
-        log(f"💖 ナデナデ #{self.pets_count}! 嫉妬 +{increase} → {level}% ({stage})")
+        if action == "looking":
+            log(f"👀 浮気(見る)検知! 嫉妬 +{increase} → {level}% ({new_stage})")
+            if random.random() < 0.1: # 表示と音声を10%の確率に抑える
+                run_script(OVERLAY_EFFECTS, ["popup", str(SYSTEM_CAT_ICON), "浮気検知", "他の猫を見るなニャ！", "default"], async_mode=True)
+                subprocess.Popen(["say", "-v", "Kyoko", "みるな！"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            log(f"💖 ナデナデ(撫でる) #{self.pets_count}! 嫉妬 +{increase} → {level}% ({new_stage})")
+            if random.random() < 0.1: # 表示と音声を10%の確率に抑える
+                run_script(OVERLAY_EFFECTS, ["popup", str(SYSTEM_CAT_ICON), "浮気検知", "他の猫を撫でるなニャ！", "default"], async_mode=True)
+                subprocess.Popen(["say", "-v", "Kyoko", "なでるな！"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-        # トースト通知
-        toast_msgs = {
-            "calm": "...ふぅん、その子をナデナデするんだ",
-            "annoyance": "...ちょっと！ボクの前でナデナデしないでよ！",
-            "obsession": "もう許さないニャ！ボクだってナデナデされたい！",
-            "rage": "...ボクだけを見て。お願い...",
-            "max": "💀 もう...限界...",
-        }
-        msg = toast_msgs.get(stage, "...")
-        # toast のlevelは 1,2,3,MAX
-        toast_level = {"calm": "1", "annoyance": "1", "obsession": "2", "rage": "3", "max": "MAX"}.get(stage, "1")
-        run_script(CAT_TOAST, [toast_level, msg], async_mode=True)
+        # 画面にポップアップ表示 (ステージ変化時)
+        if stage_changed:
+            titles = {
+                "annoyance": "⚠️ 嫉妬: イライラ",
+                "obsession": "⚠️ 嫉妬: 執着",
+                "rage":      "🚨 嫉妬: 暴走",
+                "max":       "💀 嫉妬: 限界突破"
+            }
+            msgs = {
+                "annoyance": "ボクのこと、忘れてない？",
+                "obsession": "ねえ、いい加減にしてよ...",
+                "rage":      "許さない...絶対に許さない...",
+                "max":       "もう...終わりだね..."
+            }
+            title = str(titles.get(new_stage, "嫉妬レベル上昇"))
+            msg = str(msgs.get(new_stage, f"嫉妬レベルが {level}% になりました"))
+            
+            run_script(OVERLAY_EFFECTS, ["popup", str(SYSTEM_CAT_ICON), title, msg, "default"], async_mode=True)
+        
+        elif random.random() < 0.2: 
+            run_script(OVERLAY_EFFECTS, ["popup", str(SYSTEM_CAT_ICON), "Jealousy UP!", f"嫉妬: {level}% (+{increase})", "default"], async_mode=True)
+
+        # トースト通知（バックアップとして残すが頻度低め）
+        if random.random() < 0.15:
+            toast_msgs = {
+                "calm": "...ふぅん、その子をナデナデするんだ",
+                "annoyance": "...ちょっと！ボクの前で浮気しないでよ！",
+                "obsession": "もう許さないニャ！ボクだってナデナデされたい！",
+                "rage": "...ボクだけを見て。お願い...",
+                "max": "💀 もう...限界...",
+            }
+            t_msg = str(toast_msgs.get(new_stage, "..."))
+            # toast のlevelは 1,2,3,MAX
+            t_level = str({"calm": "1", "annoyance": "1", "obsession": "2", "rage": "3", "max": "MAX"}.get(new_stage, "1"))
+            run_script(CAT_TOAST, [t_level, t_msg], async_mode=True)
 
     def sync_from_file(self):
         """メニューバーアプリからの終了シグナルを読み取る"""
@@ -175,7 +216,8 @@ class ProcessManager:
             "menubar_app.py", "healing_cat_window.py", 
             "live_reconciliation.py", "chaotic_mouse.swift",
             "overlay_effects.py", "reconcile_gui.py",
-            "active_window_sensor.py", "vision_sensor.py"
+            "active_window_sensor.py", "vision_sensor.py",
+            "jealous_browser_hijack.py"
         ]
         for pattern in nuke_patterns:
             try:
@@ -252,7 +294,8 @@ def trigger_os_action(level):
         ]
         action = random.choice(actions)
         log(action[0])
-        notify("😾 Jealousy.sys", action[0])
+        # ポップアップ表示
+        run_script(OVERLAY_EFFECTS, ["popup", SYSTEM_CAT_ICON, "Jealousy Event", action[0], "default"], async_mode=True)
         run_script(action[1], action[2] or None)
 
     elif 50 <= level < 80:
@@ -260,10 +303,11 @@ def trigger_os_action(level):
             ("🪟 ウィンドウが勝手に隠された！", HIDE_WIN, []),
             ("🌗 画面のテーマが反転した！", TOGGLE_THEME, []),
             ("🐈‍⬛ 黒猫が画面を徘徊し始めた！", ROAMING_CAT, []),
+            ("😼 勝手にブラウザで浮気調査を始めた！", JEALOUS_BROWSER, []),
         ]
         action = random.choice(actions)
         log(action[0])
-        notify("🙀 Jealousy.sys", action[0])
+        run_script(OVERLAY_EFFECTS, ["popup", SYSTEM_CAT_ICON, "Severe Jealousy", action[0], "default"], async_mode=True)
         run_script(action[1], action[2] or None)
 
     elif 80 <= level < 100:
@@ -273,12 +317,12 @@ def trigger_os_action(level):
         ]
         action = random.choice(actions)
         log(action[0])
-        notify("😈 Jealousy.sys", action[0])
+        run_script(OVERLAY_EFFECTS, ["popup", SYSTEM_CAT_ICON, "DANGER", action[0], "default"], async_mode=True)
         run_script(action[1], action[2] or None)
 
     elif level >= 100:
         log("💀 嫉妬レベルが限界に達しました！和解シーケンスを開始...")
-        notify("💀 Jealousy.sys — 限界突破", "嫉妬猫の怒りが限界に達しました！")
+        run_script(OVERLAY_EFFECTS, ["popup", SYSTEM_CAT_ICON, "CRITICAL ERROR", "嫉妬猫の怒りが限界に達しました！", "default"], async_mode=True)
         run_script(THREATEN_PROC)
         game.game_phase = "reconciling"
         game._write_state()
@@ -312,8 +356,10 @@ def run_reconciliation():
         game.game_phase = "ending"
         game._write_state()
 
-        notify("🎉 Jealousy.sys — Happy End!",
-               "嫉妬猫と仲直りしました♪ デスクトップ壁紙が更新されました！")
+        # 最前面の大きなポップアップでお知らせする
+        run_script(OVERLAY_EFFECTS, ["popup", str(SYSTEM_CAT_ICON), "🎉 Happy End", "嫉妬猫と仲直りしました♪\nデスクトップ壁紙が更新されました！", "default"], async_mode=True)
+        notify("🎉 Jealousy.sys — Happy End!", "嫉妬猫と仲直りしました♪ デスクトップ壁紙が更新されました！")
+
         log("✨ ゲームクリア！デスクトップ壁紙を設定しました。")
 
         time.sleep(8)
@@ -341,6 +387,10 @@ def jealousy_tick_loop():
         if not game.is_running:
             break
 
+        if game.game_phase == "reconciling":
+            run_reconciliation()
+            continue
+
         if game.game_phase != "playing":
             continue
 
@@ -354,10 +404,6 @@ def jealousy_tick_loop():
 
         # OS干渉
         trigger_os_action(level)
-
-        # MAX到達 → 和解
-        if game.game_phase == "reconciling":
-            run_reconciliation()
 
 
 def auto_escalation_loop():
@@ -394,7 +440,8 @@ def sensor_loop(use_vision=False):
                         data = json.loads(line)
                         if data.get("is_cheating", False):
                             log(f"👀 Vision判定 [浮気検知]: {data.get('reason', '')}")
-                            game.on_pet()
+                            action = data.get("action", "looking")
+                            game.on_pet(action=action)
                         break
                     except Exception:
                         continue
@@ -428,6 +475,18 @@ def state_sync_loop():
     """定期的に状態ファイルを書き出す（1秒ごと）"""
     while game.is_running:
         game._write_state()
+        
+        # 手動和解リクエストのチェック
+        if os.path.exists(RECONCILE_FLAG_FILE):
+            try:
+                os.remove(RECONCILE_FLAG_FILE)
+            except Exception:
+                pass
+            with game.lock:
+                if game.game_phase == "playing":
+                    game.game_phase = "reconciling"
+                    log("🐟 メニューバーからの仲直りリクエストを受信しました！")
+
         time.sleep(1)
 
 
@@ -479,6 +538,17 @@ def main():
     print()
 
     show_intro()
+
+    # ── 依存関係と環境変数のチェック ──
+    try:
+        from PIL import Image, ImageTk
+    except ImportError:
+        log("❌ エラー: Pillow がインストールされていません。'pip install Pillow' を実行してください。")
+        sys.exit(1)
+
+    if not os.environ.get("GEMINI_API_KEY"):
+        log("⚠️ 警告: GEMINI_API_KEY が設定されていません。ブラウザ乗っ取り機能などは動作しません。")
+        notify("⚠️ Jealousy.sys", "APIキーが設定されていないため、一部の機能が制限されます。")
 
     log("🎬 ゲーム開始！")
     log(f"📡 モード: {mode}")
@@ -545,22 +615,28 @@ def main():
         from healing_cat_window import HealingCatWindow
         cat_window = HealingCatWindow(game_state=game)
         log("🐱 癒やし猫がデスクトップに現れました！クリックでナデナデ♪")
+        
+        # 定期的にメインスレッドで状態チェックを行うためのafter登録
+        def check_running():
+            if not game.is_running:
+                cat_window.root.destroy()
+                return
+            cat_window.root.after(500, check_running)
+        
+        cat_window.root.after(500, check_running)
         cat_window.run()  # tkinter mainloop
+
     except KeyboardInterrupt:
-        log("🛑 ゲーム終了")
+        log("🛑 ゲーム終了 (KeyboardInterrupt)")
     except Exception as e:
         log(f"❌ 癒やし猫ウィンドウエラー: {e}")
-        log("ターミナルモードで続行 (Ctrl+C で終了)")
-        try:
-            while game.is_running:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            log("🛑 ゲーム終了")
     finally:
         # ── クリーンアップ ──
+        log("🛑 終了処理を実行中...")
         game.is_running = False
         game._write_state()
 
+        # BGM停止スクリプトを同期実行
         run_script(PLAY_BGM, ["stop", "jealous"], async_mode=False)
         run_script(PLAY_BGM, ["stop", "healing"], async_mode=False)
 
@@ -573,8 +649,11 @@ def main():
                 os.remove(SHARED_STATE_FILE)
         except Exception:
             pass
-
+        
         log("👋 Jealousy.sys を終了しました")
+        
+        # 強制終了（スレッドや残党を道連れに）
+        os._exit(0)
 
 
 if __name__ == "__main__":
