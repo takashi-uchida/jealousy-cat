@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jealousy.sys — 嫉妬するOS</title>
+    <meta name="description" content="あなたのOSに住む嫉妬深い猫と、癒やし猫の三角関係ゲーム">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&family=Orbitron:wght@700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ═══════════════════════════════════════════
+           Design System
+           ═══════════════════════════════════════════ */
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --text: #e8e8f0;
+            --text-dim: #6a6a80;
+            --accent-gold: #ffd700;
+            --accent-pink: #ff6b9d;
+            --accent-red: #ff3b3b;
+            --accent-cyan: #00f0ff;
+            --accent-purple: #b388ff;
+            --danger: #ff1744;
+            --success: #69f0ae;
+            --radius: 16px;
+            --glass: rgba(255, 255, 255, 0.04);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', -apple-system, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ═══════════════ Background Effects ═══════════════ */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: gridPulse 8s ease-in-out infinite;
+        }
+
+        @keyframes gridPulse {
+
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        .bg-glow {
+            position: fixed;
+            z-index: 0;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            transition: all 2s ease;
+        }
+
+        .bg-glow-1 {
+            top: -200px;
+            left: -100px;
+            background: var(--accent-gold);
+        }
+
+        .bg-glow-2 {
+            bottom: -200px;
+            right: -100px;
+            background: var(--accent-purple);
+        }
+
+        /* ═══════════════ Screens (共通) ═══════════════ */
+        .screen {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* ═══════════════ INTRO Screen ═══════════════ */
+        #intro-screen {
+            background: radial-gradient(ellipse at center, rgba(20, 20, 40, 0.9) 0%, var(--bg-dark) 70%);
+        }
+
+        .intro-title {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            font-weight: 900;
+            letter-spacing: -2px;
+            text-align: center;
+            position: relative;
+            animation: glitchIn 1.5s ease forwards;
+        }
+
+        .intro-title .sys {
+            color: var(--accent-gold);
+            text-shadow: 0 0 40px rgba(255, 215, 0, 0.5);
+        }
+
+        .intro-title .jealousy {
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        @keyframes glitchIn {
+            0% {
+                opacity: 0;
+                transform: translateY(30px) skewX(-5deg);
+                filter: blur(10px);
+            }
+
+            30% {
+                opacity: 1;
+                transform: translateY(-5px) skewX(2deg);
+                filter: blur(0);
+            }
+
+            50% {
+                transform: translateY(2px) skewX(-1deg);
+            }
+
+            100% {
+                transform: translateY(0) skewX(0);
+            }
+        }
+
+        .intro-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-dim);
+            margin-top: 1rem;
+            text-align: center;
+            animation: fadeIn 2s ease 0.5s forwards;
+            opacity: 0;
+            max-width: 500px;
+            line-height: 1.8;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .intro-cats {
+            display: flex;
+            gap: 3rem;
+            margin: 2.5rem 0;
+            animation: fadeIn 2s ease 1s forwards;
+            opacity: 0;
+        }
+
+        .intro-cat-card {
+            text-align: center;
+            padding: 1.5rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            backdrop-filter: blur(10px);
+            width: 180px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .intro-cat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .intro-cat-card .emoji {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .intro-cat-card .name {
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+
+        .intro-cat-card .role {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .intro-cat-card.healing {
+            border-color: rgba(255, 215, 0, 0.2);
+        }
+
+        .intro-cat-card.system {
+            border-color: rgba(255, 107, 157, 0.2);
+        }
+
+        .start-btn {
+            margin-top: 1rem;
+            padding: 1rem 3rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: 'Noto Sans JP', sans-serif;
+            color: var(--bg-dark);
+            background: linear-gradient(135deg, var(--accent-gold), #ffaa00);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            animation: fadeIn 2s ease 1.5s forwards, pulse 2s ease-in-out 3s infinite;
+            opacity: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 0 15px rgba(255, 215, 0, 0);
+            }
+        }
+
+        /* ═══════════════ GAME Screen ═══════════════ */
+        #game-screen {
+            flex-direction: row;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            align-items: stretch;
+            justify-content: center;
+        }
+
+        .game-panel {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            backdrop-filter: blur(12px);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 左パネル: 癒やし猫 */
+        .healing-panel {
+            flex: 1;
+            max-width: 480px;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .healing-panel h2 {
+            font-size: 1.3rem;
+            color: var(--accent-gold);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cat-area {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.08) 0%, transparent 70%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .cat-area:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.15);
+        }
+
+        .cat-area:active {
+            transform: scale(0.97);
+        }
+
+        .cat-area img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            animation: catFloat 4s ease-in-out infinite;
+        }
+
+        @keyframes catFloat {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+            }
+
+            50% {
+                transform: translateY(-6px) scale(1.02);
+            }
+        }
+
+        .pet-feedback {
+            position: absolute;
+            font-size: 2rem;
+            pointer-events: none;
+            animation: petPop 0.8s ease forwards;
+            z-index: 100;
+        }
+
+        @keyframes petPop {
+            0% {
+                transform: scale(0) translateY(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.5) translateY(-60px);
+                opacity: 0;
+            }
+        }
+
+        .healing-stats {
+            display: flex;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 0.8rem;
+            text-align: center;
+        }
+
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+        }
+
+        .stat-card .label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 0.2rem;
+        }
+
+        .pet-hint {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            opacity: 0.7;
+        }
+
+        /* 右パネル: システム猫（嫉妬猫） */
+        .system-panel {
+            flex: 1;
+            max-width: 480px;
+            gap: 1rem;
+        }
+
+        .system-panel h2 {
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .system-panel h2 .label-text {
+            transition: color 0.5s;
+        }
+
+        /* 嫉妬メーター */
+        .jealousy-meter {
+            width: 100%;
+        }
+
+        .meter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .meter-stage {
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            background: rgba(255, 215, 0, 0.15);
+            color: var(--accent-gold);
+            transition: all 0.5s;
+        }
+
+        .meter-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.3rem;
+            font-weight: 700;
+            transition: color 0.5s;
+        }
+
+        .meter-bar-bg {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .meter-bar {
+            height: 100%;
+            border-radius: 6px;
+            background: linear-gradient(90deg, var(--accent-gold), var(--accent-pink));
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+                background 0.5s;
+            position: relative;
+        }
+
+        .meter-bar::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 30px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3));
+            border-radius: 0 6px 6px 0;
+        }
+
+        /* 吹き出し */
+        .dialogue-bubble {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px 16px 16px 4px;
+            padding: 1rem 1.2rem;
+            font-size: 1rem;
+            line-height: 1.6;
+            min-height: 60px;
+            position: relative;
+            transition: border-color 0.5s;
+        }
+
+        .dialogue-bubble::before {
+            content: '🐱';
+            position: absolute;
+            left: -8px;
+            bottom: -8px;
+            font-size: 1.2rem;
+        }
+
+        .dialogue-text {
+            transition: opacity 0.3s;
+        }
+
+        /* イベントログ */
+        .event-log {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            max-height: 200px;
+            padding-right: 0.5rem;
+        }
+
+        .event-log::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .event-log::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .event-item {
+            font-size: 0.8rem;
+            padding: 0.5rem 0.7rem;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 8px;
+            border-left: 3px solid var(--accent-purple);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .event-item .event-time {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            flex-shrink: 0;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .event-log-title {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* ═══════════════ Stage visual effects ═══════════════ */
+        body.stage-calm .bg-glow-1 {
+            background: var(--accent-gold);
+            opacity: 0.1;
+        }
+
+        body.stage-calm .bg-glow-2 {
+            background: var(--accent-purple);
+            opacity: 0.1;
+        }
+
+        body.stage-annoyance .bg-glow-1 {
+            background: var(--accent-pink);
+            opacity: 0.2;
+        }
+
+        body.stage-annoyance .bg-glow-2 {
+            background: #ff9100;
+            opacity: 0.15;
+        }
+
+        body.stage-annoyance .meter-bar {
+            background: linear-gradient(90deg, #ffa726, var(--accent-pink));
+        }
+
+        body.stage-annoyance .meter-stage {
+            background: rgba(255, 107, 157, 0.2);
+            color: var(--accent-pink);
+        }
+
+        body.stage-obsession .bg-glow-1 {
+            background: var(--accent-red);
+            opacity: 0.25;
+        }
+
+        body.stage-obsession .bg-glow-2 {
+            background: var(--accent-pink);
+            opacity: 0.2;
+        }
+
+        body.stage-obsession .meter-bar {
+            background: linear-gradient(90deg, var(--accent-pink), var(--accent-red));
+        }
+
+        body.stage-obsession .meter-stage {
+            background: rgba(255, 59, 59, 0.2);
+            color: var(--accent-red);
+        }
+
+        body.stage-obsession .dialogue-bubble {
+            border-color: rgba(255, 59, 59, 0.3);
+        }
+
+        body.stage-rage .bg-glow-1 {
+            background: var(--danger);
+            opacity: 0.3;
+        }
+
+        body.stage-rage .bg-glow-2 {
+            background: var(--accent-red);
+            opacity: 0.3;
+        }
+
+        body.stage-rage .meter-bar {
+            background: linear-gradient(90deg, var(--accent-red), var(--danger));
+        }
+
+        body.stage-rage .meter-stage {
+            background: rgba(255, 23, 68, 0.2);
+            color: var(--danger);
+        }
+
+        body.stage-rage .dialogue-bubble {
+            border-color: rgba(255, 23, 68, 0.4);
+        }
+
+        body.stage-rage .bg-grid {
+            animation: gridShake 0.5s infinite;
+        }
+
+        body.stage-max .bg-glow-1 {
+            background: var(--danger);
+            opacity: 0.4;
+        }
+
+        body.stage-max .bg-glow-2 {
+            background: #ff0000;
+            opacity: 0.35;
+        }
+
+        body.stage-max .meter-bar {
+            background: linear-gradient(90deg, var(--danger), #ff0000);
+        }
+
+        body.stage-max .bg-grid {
+            animation: gridShake 0.3s infinite;
+        }
+
+        @keyframes gridShake {
+
+            0%,
+            100% {
+                transform: translate(0);
+            }
+
+            25% {
+                transform: translate(-1px, 1px);
+            }
+
+            75% {
+                transform: translate(1px, -1px);
+            }
+        }
+
+        /* ═══════════════ RECONCILE Screen ═══════════════ */
+        #reconcile-screen {
+            background: radial-gradient(ellipse at center, rgba(40, 10, 20, 0.95) 0%, var(--bg-dark) 70%);
+        }
+
+        .reconcile-container {
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .reconcile-cat {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            animation: catFloat 3s ease-in-out infinite;
+        }
+
+        .reconcile-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--danger);
+            margin-bottom: 0.5rem;
+        }
+
+        .reconcile-desc {
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+            line-height: 1.8;
+        }
+
+        .reconcile-input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .reconcile-input {
+            flex: 1;
+            padding: 1rem 1.2rem;
+            font-size: 1rem;
+            font-family: 'Noto Sans JP', sans-serif;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .reconcile-input:focus {
+            border-color: var(--accent-pink);
+        }
+
+        .reconcile-input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .reconcile-send {
+            padding: 1rem 1.5rem;
+            font-size: 1rem;
+            font-family: 'Noto Sans JP', sans-serif;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            white-space: nowrap;
+        }
+
+        .reconcile-send:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 107, 157, 0.3);
+        }
+
+        .reconcile-result {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .reconcile-result.fail {
+            display: block;
+            background: rgba(255, 23, 68, 0.1);
+            border: 1px solid rgba(255, 23, 68, 0.3);
+            color: var(--danger);
+        }
+
+        /* ═══════════════ ENDING Screen ═══════════════ */
+        #ending-screen {
+            background: radial-gradient(ellipse at center, rgba(15, 30, 20, 0.95) 0%, var(--bg-dark) 70%);
+        }
+
+        .ending-container {
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .ending-cats {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: endingBounce 2s ease-in-out infinite;
+        }
+
+        @keyframes endingBounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .ending-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-gold), var(--success));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .ending-message {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--text-dim);
+            margin-bottom: 0.5rem;
+        }
+
+        .ending-dialogue {
+            font-size: 1.2rem;
+            color: var(--accent-pink);
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: rgba(255, 107, 157, 0.08);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 107, 157, 0.15);
+        }
+
+        .ending-stats {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+
+        .ending-stat {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+        }
+
+        .ending-stat .val {
+            font-family: 'Orbitron', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+        }
+
+        .ending-stat .lbl {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .restart-btn {
+            margin-top: 1rem;
+            padding: 0.8rem 2.5rem;
+            font-size: 1rem;
+            font-family: 'Noto Sans JP', sans-serif;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-gold), #ffaa00);
+            color: var(--bg-dark);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
+        }
+
+        /* ═══════════════ Screen shake ═══════════════ */
+        .screen-shake {
+            animation: screenShake 0.4s ease;
+        }
+
+        @keyframes screenShake {
+
+            0%,
+            100% {
+                transform: translate(0);
+            }
+
+            20% {
+                transform: translate(-4px, 2px);
+            }
+
+            40% {
+                transform: translate(4px, -2px);
+            }
+
+            60% {
+                transform: translate(-3px, 3px);
+            }
+
+            80% {
+                transform: translate(3px, -1px);
+            }
+        }
+
+        /* ═══════════════ Responsive ═══════════════ */
+        @media (max-width: 900px) {
+            #game-screen {
+                flex-direction: column;
+                align-items: center;
+                overflow-y: auto;
+            }
+
+            .healing-panel,
+            .system-panel {
+                max-width: 100%;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body class="stage-calm">
+    <!-- Background Effects -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <!-- ═══════ INTRO ═══════ -->
+    <div id="intro-screen" class="screen active">
+        <div class="intro-title">
+            <span class="jealousy">Jealousy</span><span class="sys">.sys</span>
+        </div>
+        <div class="intro-subtitle">
+            あなたのPCに住む2匹の猫。<br>
+            癒やし猫を可愛がるほど、システム猫が嫉妬してOSに干渉してくる——<br>
+            果たして、和解できるのか？
+        </div>
+        <div class="intro-cats">
+            <div class="intro-cat-card healing">
+                <div class="emoji">🐱</div>
+                <div class="name">癒やし猫</div>
+                <div class="role">Cat A — あなたの癒やし</div>
+            </div>
+            <div class="intro-cat-card system">
+                <div class="emoji">😾</div>
+                <div class="name">システム猫</div>
+                <div class="role">Cat B — OSに潜む嫉妬心</div>
+            </div>
+        </div>
+        <button class="start-btn" onclick="startGame()">🐾 猫と暮らし始める</button>
+    </div>
+
+    <!-- ═══════ GAME ═══════ -->
+    <div id="game-screen" class="screen">
+        <!-- 左: 癒やし猫パネル -->
+        <div class="game-panel healing-panel">
+            <h2>🐱 Healing Cat</h2>
+            <div class="cat-area" id="cat-area" title="クリックしてなでる！">
+                <img src="healing_cat.png" alt="癒やし猫" id="cat-image">
+            </div>
+            <div class="healing-stats">
+                <div class="stat-card">
+                    <div class="value" id="pets-count">0</div>
+                    <div class="label">なでなで回数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="purr-level">😺</div>
+                    <div class="label">ご機嫌</div>
+                </div>
+            </div>
+            <div class="pet-hint">✨ 猫をクリックしてなでてあげよう（でも、見られてるよ…？）</div>
+        </div>
+
+        <!-- 右: システム猫（嫉妬猫）パネル -->
+        <div class="game-panel system-panel">
+            <h2>😾 <span class="label-text" id="system-cat-label">System Cat</span></h2>
+
+            <!-- 嫉妬メーター -->
+            <div class="jealousy-meter">
+                <div class="meter-header">
+                    <span class="meter-stage" id="stage-badge">😺 平穏</span>
+                    <span class="meter-value" id="meter-value">0</span>
+                </div>
+                <div class="meter-bar-bg">
+                    <div class="meter-bar" id="meter-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- 嫉妬猫のセリフ -->
+            <div class="dialogue-bubble">
+                <div class="dialogue-text" id="dialogue-text">...zzz</div>
+            </div>
+
+            <!-- イベントログ -->
+            <div class="event-log-title">📋 OS干渉ログ</div>
+            <div class="event-log" id="event-log">
+                <div class="event-item" style="border-left-color: var(--text-dim);">
+                    <span>待機中...</span>
+                    <span class="event-time">--:--:--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ RECONCILE ═══════ -->
+    <div id="reconcile-screen" class="screen">
+        <div class="reconcile-container">
+            <div class="reconcile-cat">😿</div>
+            <div class="reconcile-title">RECONCILIATION</div>
+            <div class="reconcile-desc">
+                嫉妬猫の怒りが限界に達してしまった...<br>
+                優しい言葉で、にゃんこをなだめてあげよう。
+            </div>
+            <div class="reconcile-input-group">
+                <input type="text" class="reconcile-input" id="reconcile-input" placeholder="にゃんこに伝えたい言葉を入力..."
+                    maxlength="100">
+                <button class="reconcile-send" onclick="sendReconcile()">送る 💌</button>
+            </div>
+            <div class="reconcile-result" id="reconcile-result"></div>
+        </div>
+    </div>
+
+    <!-- ═══════ ENDING ═══════ -->
+    <div id="ending-screen" class="screen">
+        <div class="ending-container">
+            <div class="ending-cats">🐱🤝😺</div>
+            <div class="ending-title">HAPPY END</div>
+            <div class="ending-message">
+                嫉妬猫はあなたの言葉で心を開きました。<br>
+                もう二匹は仲良し。あなたのOSに平和が訪れた——
+            </div>
+            <div class="ending-dialogue" id="ending-dialogue">
+                「...えへへ。ボクのこと、好きって言ってくれた♪」
+            </div>
+            <div class="ending-stats">
+                <div class="ending-stat">
+                    <div class="val" id="ending-pets">0</div>
+                    <div class="lbl">なでなで回数</div>
+                </div>
+                <div class="ending-stat">
+                    <div class="val" id="ending-events">0</div>
+                    <div class="lbl">OS干渉回数</div>
+                </div>
+            </div>
+            <button class="restart-btn" onclick="restartGame()">🔁 もう一度遊ぶ</button>
+        </div>
+    </div>
+
+    <script>
+        // ══════════════════════════════════════
+        // State
+        // ══════════════════════════════════════
+        let currentScreen = 'intro';
+        let petsCount = 0;
+        let totalEvents = 0;
+        let pollingInterval = null;
+        let lastEventCount = 0;
+
+        const PET_EMOJIS = ['💖', '✨', '💕', '🌸', '💫', '🫶', '😻', '🐾'];
+        const PURR_FACES = ['😺', '😸', '😻', '🥰', '😽', '💖'];
+
+        // ══════════════════════════════════════
+        // Screen Management
+        // ══════════════════════════════════════
+        function showScreen(name) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById(name + '-screen');
+            if (target) target.classList.add('active');
+            currentScreen = name;
+        }
+
+        // ══════════════════════════════════════
+        // Game Start
+        // ══════════════════════════════════════
+        async function startGame() {
+            try {
+                await fetch('/api/start', { method: 'POST' });
+            } catch (e) {
+                console.warn('Server not available, running in standalone mode');
+            }
+            petsCount = 0;
+            totalEvents = 0;
+            lastEventCount = 0;
+            document.getElementById('pets-count').textContent = '0';
+            document.getElementById('purr-level').textContent = '😺';
+            document.getElementById('meter-bar').style.width = '0%';
+            document.getElementById('meter-value').textContent = '0';
+            document.getElementById('stage-badge').textContent = '😺 平穏';
+            document.getElementById('dialogue-text').textContent = '...ふぅん、始まったんだ。';
+            document.getElementById('event-log').innerHTML = '';
+
+            showScreen('game');
+            startPolling();
+        }
+
+        // ══════════════════════════════════════
+        // Petting
+        // ══════════════════════════════════════
+        const catArea = document.getElementById('cat-area');
+        const catImage = document.getElementById('cat-image');
+
+        catArea.addEventListener('click', async (e) => {
+            petsCount++;
+            document.getElementById('pets-count').textContent = petsCount;
+
+            // Visual feedback
+            catImage.style.transform = 'scale(0.93)';
+            setTimeout(() => { catImage.style.transform = ''; }, 120);
+
+            // Purr face
+            const face = PURR_FACES[Math.min(Math.floor(petsCount / 3), PURR_FACES.length - 1)];
+            document.getElementById('purr-level').textContent = face;
+
+            // Floating emoji
+            spawnPetEmoji(e.clientX, e.clientY);
+
+            // API call
+            try {
+                const res = await fetch('/api/pet', { method: 'POST' });
+                const data = await res.json();
+                if (data.dialogue) {
+                    updateDialogue(data.dialogue);
+                }
+                if (data.jealousy_level !== undefined) {
+                    updateMeter(data.jealousy_level, data.stage);
+                }
+            } catch (e) {
+                // Standalone mode: fake jealousy
+                const fakeLevel = Math.min(petsCount * 8, 105);
+                updateMeter(fakeLevel, getStageFromLevel(fakeLevel));
+            }
+
+
+            // Screen shake at high levels
+            const level = parseInt(document.getElementById('meter-value').textContent);
+            if (level >= 50) {
+                document.body.classList.add('screen-shake');
+                setTimeout(() => document.body.classList.remove('screen-shake'), 400);
+            }
+        });
+
+        function spawnPetEmoji(x, y) {
+            const emoji = document.createElement('div');
+            emoji.className = 'pet-feedback';
+            emoji.textContent = PET_EMOJIS[Math.floor(Math.random() * PET_EMOJIS.length)];
+            emoji.style.left = (x - catArea.getBoundingClientRect().left) + 'px';
+            emoji.style.top = (y - catArea.getBoundingClientRect().top) + 'px';
+            catArea.appendChild(emoji);
+            setTimeout(() => emoji.remove(), 800);
+        }
+
+        function getStageFromLevel(level) {
+            if (level < 20) return 'calm';
+            if (level < 50) return 'annoyance';
+            if (level < 80) return 'obsession';
+            if (level < 100) return 'rage';
+            return 'max';
+        }
+
+        // ══════════════════════════════════════
+        // UI Updates
+        // ══════════════════════════════════════
+        function updateMeter(level, stage) {
+            const clampedLevel = Math.min(level, 100);
+            document.getElementById('meter-bar').style.width = clampedLevel + '%';
+            document.getElementById('meter-value').textContent = clampedLevel;
+
+            // Stage badge
+            const stageNames = {
+                calm: '😺 平穏',
+                annoyance: '😾 イライラ',
+                obsession: '🙀 執着',
+                rage: '😈 暴走',
+                max: '💀 限界突破',
+            };
+            document.getElementById('stage-badge').textContent = stageNames[stage] || stageNames.calm;
+
+            // Body class for visual effects
+            document.body.className = 'stage-' + stage;
+
+            // System cat label color
+            const labelEl = document.getElementById('system-cat-label');
+            const colors = {
+                calm: 'var(--text)',
+                annoyance: 'var(--accent-pink)',
+                obsession: 'var(--accent-red)',
+                rage: 'var(--danger)',
+                max: 'var(--danger)',
+            };
+            labelEl.style.color = colors[stage] || colors.calm;
+        }
+
+        function updateDialogue(text) {
+            const el = document.getElementById('dialogue-text');
+            el.style.opacity = '0';
+            setTimeout(() => {
+                el.textContent = text;
+                el.style.opacity = '1';
+            }, 200);
+        }
+
+        function addEventToLog(eventText, eventTime) {
+            const log = document.getElementById('event-log');
+            const item = document.createElement('div');
+            item.className = 'event-item';
+            item.innerHTML = `<span>${eventText}</span><span class="event-time">${eventTime}</span>`;
+            log.insertBefore(item, log.firstChild);
+            // 最大15件
+            while (log.children.length > 15) {
+                log.removeChild(log.lastChild);
+            }
+            totalEvents++;
+        }
+
+        // ══════════════════════════════════════
+        // Polling (Server state sync)
+        // ══════════════════════════════════════
+        function startPolling() {
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(pollState, 1500);
+        }
+
+        async function pollState() {
+            try {
+                const res = await fetch('/api/state');
+                const state = await res.json();
+
+                // Update meter & dialogue
+                updateMeter(state.jealousy_level, state.stage);
+                if (state.cat_dialogue) {
+                    updateDialogue(state.cat_dialogue);
+                }
+
+                // New events
+                if (state.events && state.events.length > lastEventCount) {
+                    const newEvents = state.events.slice(lastEventCount);
+                    for (const ev of newEvents) {
+                        addEventToLog(ev.text, ev.time);
+                    }
+                    lastEventCount = state.events.length;
+                }
+
+                // Phase transitions
+                if (state.game_phase === 'reconciling' && currentScreen !== 'reconcile') {
+                    showScreen('reconcile');
+                    clearInterval(pollingInterval);
+                } else if (state.game_phase === 'ending' && currentScreen !== 'ending') {
+                    showEnding(state);
+                }
+
+            } catch (e) {
+                // Server unavailable — standalone mode
+            }
+        }
+
+        // ══════════════════════════════════════
+        // Reconciliation
+        // ══════════════════════════════════════
+        const reconcileInput = document.getElementById('reconcile-input');
+        reconcileInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendReconcile();
+        });
+
+        async function sendReconcile() {
+            const text = reconcileInput.value.trim();
+            if (!text) return;
+
+            try {
+                const res = await fetch('/api/reconcile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text }),
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    showEnding(data);
+                } else {
+                    const result = document.getElementById('reconcile-result');
+                    result.className = 'reconcile-result fail';
+                    result.textContent = data.message || '心が伝わらなかった...もう一度試してみて。';
+                    result.style.display = 'block';
+                    reconcileInput.value = '';
+
+                    // Shake
+                    document.body.classList.add('screen-shake');
+                    setTimeout(() => document.body.classList.remove('screen-shake'), 400);
+                }
+            } catch (e) {
+                // Standalone: check keywords locally
+                const keywords = ['好き', '大好き', 'ごめん', 'ごめんね', 'かわいい', '愛', 'love', 'sorry'];
+                const matched = keywords.some(k => text.includes(k));
+                if (matched) {
+                    showEnding({});
+                } else {
+                    const result = document.getElementById('reconcile-result');
+                    result.className = 'reconcile-result fail';
+                    result.textContent = '心が伝わらなかった...もっと優しい言葉を。';
+                    result.style.display = 'block';
+                    reconcileInput.value = '';
+                }
+            }
+        }
+
+        // ══════════════════════════════════════
+        // Ending
+        // ══════════════════════════════════════
+        function showEnding(data) {
+            clearInterval(pollingInterval);
+            document.getElementById('ending-pets').textContent = petsCount;
+            document.getElementById('ending-events').textContent = totalEvents;
+            if (data && data.cat_dialogue) {
+                document.getElementById('ending-dialogue').textContent = `「${data.cat_dialogue}」`;
+            }
+            document.body.className = '';
+            showScreen('ending');
+        }
+
+        async function restartGame() {
+            try {
+                await fetch('/api/restart', { method: 'POST' });
+            } catch (e) { }
+            document.body.className = 'stage-calm';
+            showScreen('intro');
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>癒やし猫 - Welcome to Jealousy.sys</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --accent-color: #ffd700;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --gradient: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--gradient);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 600px;
+            width: 90%;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #ffffff, #aaaaaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            font-size: 1.2rem;
+            color: #888;
+            margin-bottom: 2rem;
+        }
+
+        .cat-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            margin: 0 auto;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0) 70%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .cat-container:hover {
+            transform: scale(1.03);
+            box-shadow: 0 15px 40px rgba(255, 215, 0, 0.2);
+        }
+
+        .cat-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px) scale(1);
+            }
+
+            50% {
+                transform: translateY(-5px) scale(1.02);
+            }
+
+            100% {
+                transform: translateY(0px) scale(1);
+            }
+        }
+
+        .stats {
+            margin-top: 2rem;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 10px;
+            min-width: 100px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.3rem;
+        }
+
+        /* Interactive particles */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            background: var(--accent-color);
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(3);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Healing Cat Interface</h1>
+        <p>Take a deep breath and pet the virtual cat.</p>
+
+        <div class="cat-container" id="cat-area" title="Click to pet!">
+            <img src="healing_cat.png" alt="A cute and fluffy healing cat" class="cat-image" id="cat-image">
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-value" id="pets-count">0</div>
+                <div class="stat-label">Pets Given</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="purr-level">0%</div>
+                <div class="stat-label">Purr Level</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const catArea = document.getElementById('cat-area');
+        const catImage = document.getElementById('cat-image');
+        const petsCount = document.getElementById('pets-count');
+        const purrLevel = document.getElementById('purr-level');
+
+        let pets = 0;
+
+        catArea.addEventListener('click', (e) => {
+            pets++;
+            petsCount.innerText = pets;
+
+            // Add a little squish effect on click
+            catImage.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                catImage.style.transform = '';
+            }, 100);
+
+            // Calculate purr level
+            const purr = Math.min(100, (pets * 2));
+            purrLevel.innerText = purr + '%';
+
+            // Create particle effect
+            createParticle(e.clientX, e.clientY);
+
+            // Change title to simulate window focus/distraction for the sensor
+            document.title = `Petting Cat... (${pets})`;
+            setTimeout(() => {
+                document.title = 'Healing Cat Interface';
+            }, 1000);
+        });
+
+        function createParticle(x, y) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+
+            const size = Math.random() * 20 + 10;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+
+            // Random output around the click
+            const destX = x + (Math.random() - 0.5) * 100;
+            const destY = y + (Math.random() - 0.5) * 100;
+
+            particle.style.left = `${x}px`;
+            particle.style.Top = `${y}px`;
+
+            document.body.appendChild(particle);
+
+            particle.animate([
+                { transform: 'translate(-50%, -50%) scale(1)', opacity: 0.8 },
+                { transform: `translate(calc(-50% + ${destX - x}px), calc(-50% + ${destY - y}px)) scale(0)`, opacity: 0 }
+            ], {
+                duration: 800,
+                easing: 'cubic-bezier(0, .9, .57, 1)'
+            }).onfinish = () => particle.remove();
+        }
+    </script>
+</body>
+
+</html>

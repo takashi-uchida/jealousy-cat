@@ -45,9 +45,10 @@ AIの嫉妬度（0〜100）に応じて、PCへの干渉度合いが変化しま
   - Gemini 3 Deep Think（複雑なコンテキストの理解と嫉妬レベル0〜100の管理）
 - **実行・操作（Act）**: 
   - Computer Use （PyAutoGUI および AppleScriptによるmacOSのウィンドウ制御）
-- **視覚効果（Visuals）**: 
+- **視覚・聴覚効果（Media）**: 
   - 画像生成：Nano Banana (Imagen等)
   - ターゲット猫のアニメーション：Live2D または GIF
+  - 音声アセット：macOS `say` コマンドによる生成音声 (`assets/voices/`)
 - **開発フレームワーク**: 
   - Antigravity (Google's AI-Native IDE)
   - `google-genai` SDK
@@ -63,3 +64,35 @@ AIの嫉妬度（0〜100）に応じて、PCへの干渉度合いが変化しま
    - AIのComputer Useが、ユーザーの本来の重要データやファイルを誤って削除しないようにするためのサンドボックス化、もしくはゲストユーザー環境用の制御ロジック。
 4. **仕様定義書 (`SKILL.md`)**:
    - AIエージェントの「感知」「行動」「和解」のルールを定めた定義ファイル。
+
+## 6. クイックスタート（ネイティブ版）
+
+ブラウザ不要。macOSデスクトップ自体がゲームフィールドです。
+
+```bash
+# 環境構築
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# ゲーム起動（3つのモード）
+python native_game.py              # デモモード（自動エスカレーション）
+python native_game.py --sensor     # アクティブウィンドウ監視モード
+python native_game.py --vision     # Gemini Vision 監視モード
+```
+
+### ゲームの流れ
+1. **起動** → ネイティブダイアログでストーリー紹介
+2. **癒やし猫ウィンドウ**がデスクトップに出現（クリックでナデナデ）
+3. **メニューバー**に嫉妬ゲージが常駐（😺→😾→🙀→😈→💀）
+4. ナデナデするほど**嫉妬猫がOSを乗っ取る**（マウス暴走、ウィンドウ消滅、テーマ反転…）
+5. 嫉妬MAX → **ネイティブダイアログで和解チャレンジ**
+6. 和解成功 → **ハッピーエンド壁紙が自動生成・設定**
+
+### アーキテクチャ
+```
+native_game.py          ←  統合ランチャー
+├── healing_cat_window.py    フローティング猫ウィンドウ (tkinter)
+├── menubar_app.py           メニューバー常駐 (rumps)
+├── reconcile_dialog.py      和解ダイアログ (osascript)
+└── .agent/skills/scripts/   OS干渉スクリプト群
+```
