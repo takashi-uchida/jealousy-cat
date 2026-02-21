@@ -956,6 +956,12 @@
         <div class="game-panel system-panel">
             <h2>😾 <span class="label-text" id="system-cat-label">System Cat</span></h2>
 
+            <!-- 監視情報 -->
+            <div id="monitoring-info" style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.5rem; padding: 0.4rem 0.8rem; background: rgba(0,0,0,0.2); border-radius: 8px; border-left: 2px solid var(--accent-cyan); display: none;">
+                <span style="color: var(--accent-cyan); font-weight: bold;">[WATCHING]</span> 
+                <span id="active-app-name">Unknown</span>
+            </div>
+
             <!-- 嫉妬メーター -->
             <div class="jealousy-meter">
                 <div class="meter-header">
@@ -1210,6 +1216,16 @@
                 updateMeter(state.jealousy_level, state.stage);
                 if (state.cat_dialogue) {
                     updateDialogue(state.cat_dialogue);
+                }
+
+                // Update active app monitoring info
+                const monitoringEl = document.getElementById('monitoring-info');
+                const appNameEl = document.getElementById('active-app-name');
+                if (state.active_app && state.active_app !== 'Unknown') {
+                    appNameEl.textContent = state.active_app;
+                    monitoringEl.style.display = 'block';
+                } else {
+                    monitoringEl.style.display = 'none';
                 }
 
                 // New events

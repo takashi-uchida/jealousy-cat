@@ -8,7 +8,9 @@ import sys
 import json
 import time
 
-SHARED_STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".game_state.json")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SHARED_STATE_FILE = os.path.join(BASE_DIR, ".game_state.json")
+RECONCILE_FLAG_FILE = os.path.join(BASE_DIR, ".reconcile_request")
 
 try:
     import rumps
@@ -48,24 +50,56 @@ class JealousyMenuBarApp(rumps.App):
     }
 
     def __init__(self):
+        # アイコン画像のパスを確認
+        self.icon_path = os.path.join(BASE_DIR, "assets", "system_cat_icon.png")
+        if not os.path.exists(self.icon_path):
+            self.icon_path = None
+
         super().__init__(
             "Jealousy.sys",
-            title="😺 0%",
+            title=" 0%" if self.icon_path else "😺 0%",
+            icon=self.icon_path,
             quit_button=None,
         )
 
         self.level_item = rumps.MenuItem("嫉妬レベル: ░░░░░░░░░░ 0%")
         self.stage_item = rumps.MenuItem("ステージ: 😺 平穏")
         self.pets_item = rumps.MenuItem("ナデナデ回数: 0 回")
+        self.reconcile_item = rumps.MenuItem("🐟 仲直りする", callback=self.on_reconcile)
         self.quit_item = rumps.MenuItem("🛑 ゲーム終了", callback=self.on_quit)
 
         self.menu = [
             self.level_item,
             self.stage_item,
             self.pets_item,
+            None, # separator
+            self.reconcile_item,
             None,  # separator
             self.quit_item,
         ]
+        
+        # 起動時に自己主張する
+        rumps.notification(
+            title="🐈‍⬛ Jealousy.sys",
+            subtitle="ここから見てるよ...",
+            message="嫉妬猫はメニューバーに潜んでいます。浮気したら許さないからね。",
+            sound=True
+        )
+
+    def on_reconcile(self, _):
+        """ユーザーが手動で和解を求めた場合"""
+        # フラグファイルを作成して native_game.py に通知
+        try:
+            with open(RECONCILE_FLAG_FILE, "w") as f:
+                f.write("requested")
+            rumps.notification(
+                title="🐈‍⬛ Jealousy.sys",
+                subtitle="アプローチ中...",
+                message="嫉妬猫に話しかけてみます...",
+                sound=False
+            )
+        except Exception as e:
+            print(f"Error creating reconcile flag: {e}")
 
     def on_quit(self, _):
         # 終了シグナルを書き込み
@@ -86,11 +120,17 @@ class JealousyMenuBarApp(rumps.App):
         stage = state.get("stage", "calm")
         pets = state.get("pets_count", 0)
 
-        icon = self.STAGE_ICONS.get(stage, "😺")
+        emoji_icon = self.STAGE_ICONS.get(stage, "😺")
         name = self.STAGE_NAMES.get(stage, "不明")
 
         # メニューバータイトル
-        self.title = f"{icon} {level}%"
+        if self.icon_path:
+            self.title = f" {level}%"
+            # アイコンも更新したいが、rumpsでは画像を動的に変えるのは少し面倒。
+            # 一旦静的なアイコンを維持しつつ、もし画像がなければ絵文字を使う。
+            self.icon = self.icon_path
+        else:
+            self.title = f"{emoji_icon} {level}%"
 
         # メニュー項目
         filled = level // 10

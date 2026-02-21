@@ -29,6 +29,11 @@ RECONCILIATION_IMG = os.path.join(BASE_DIR, ".agent", "skills", "jealousy-core",
 LIVE_RECONCILIATION = os.path.join(SCRIPTS_DIR, "live_reconciliation.py")
 GENERATE_WALLPAPER = os.path.join(SCRIPTS_DIR, "generate_wallpaper.py")
 
+# New Cat Interaction Scripts
+FOLLOW_MOUSE_CAT = os.path.join(SCRIPTS_DIR, "follow_mouse_cat.py")
+CAT_POUNCE = os.path.join(SCRIPTS_DIR, "cat_pounce.swift")
+CAT_SCRATCH = os.path.join(SCRIPTS_DIR, "cat_scratch.py")
+
 # 新しい OS Hacks 用のスクリプトパス
 TOGGLE_THEME = os.path.join(SCRIPTS_DIR, "os_hacks", "toggle_dark_mode.sh")
 TERMINAL_GHOST = os.path.join(SCRIPTS_DIR, "os_hacks", "terminal_ghost.sh")
@@ -104,16 +109,19 @@ class JealousySupervisor:
         
         # Level 1: Annoyance
         if 20 <= self.jealousy_level < 50:
-            self.log("⚡ [Level 1: Annoyance] - マウスを揺らし、不気味な声で威嚇する")
-            run_worker(CAT_TOAST, ["1", "マウスを揺らしてやるニャ..."], async_mode=True)
+            self.log("⚡ [Level 1: Annoyance] - マウスを揺らし、猫が追いかけ始める")
+            run_worker(CAT_TOAST, ["1", "こっち向いてニャ..."], async_mode=True)
             run_worker(PLAY_BGM, ["start", "jealous"], async_mode=True)
+            run_worker(FOLLOW_MOUSE_CAT, async_mode=True)
             run_worker(CHAOTIC_MOUSE, async_mode=True)
             run_worker(PLAY_HISS, async_mode=True)
             
         # Level 2: Obsession
         elif 50 <= self.jealousy_level < 80:
-            self.log("⚡ [Level 2: Obsession] - ウィンドウを不意に隠し、テーマ色反転、画面を徘徊する猫を召喚する")
-            run_worker(CAT_TOAST, ["2", "お前のウィンドウ、隠してやったニャ"], async_mode=True)
+            self.log("⚡ [Level 2: Obsession] - ウィンドウを不意に隠し、爪跡を残し、マウスを強奪する")
+            run_worker(CAT_TOAST, ["2", "ボクの爪跡、刻んでやるニャ！"], async_mode=True)
+            run_worker(CAT_SCRATCH, async_mode=True)
+            run_worker(CAT_POUNCE, async_mode=True)
             run_worker(HIDE_WIN)
             run_worker(TOGGLE_THEME, async_mode=True)
             run_worker(ROAMING_CAT, async_mode=True)
@@ -212,6 +220,19 @@ class JealousySupervisor:
         except KeyboardInterrupt:
             self.log("🛑 Supervisor stopped by user.")
             self.is_running = False
+        finally:
+            self.log("🧹 クリーンアップ中...")
+            # BGM停止
+            run_worker(PLAY_BGM, ["stop", "jealous"])
+            run_worker(PLAY_BGM, ["stop", "healing"])
+            # 強制停止
+            try:
+                subprocess.run(["pkill", "-f", "afplay"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(["pkill", "-f", "roaming_cat.py"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(["pkill", "-f", "follow_mouse_cat.py"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except Exception:
+                pass
+            self.log("✨ クリーンアップ完了")
 
 if __name__ == "__main__":
     supervisor = JealousySupervisor()

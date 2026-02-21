@@ -32,6 +32,8 @@ TOGGLE_THEME = os.path.join(SCRIPTS_DIR, "os_hacks", "toggle_dark_mode.sh")
 TERMINAL_GHOST = os.path.join(SCRIPTS_DIR, "os_hacks", "terminal_ghost.sh")
 PLAY_BGM = os.path.join(SCRIPTS_DIR, "play_bgm.sh")
 GENERATE_WALLPAPER = os.path.join(SCRIPTS_DIR, "generate_wallpaper.py")
+SENSOR = os.path.join(SCRIPTS_DIR, "active_window_sensor.py")
+CHANGE_CURSOR = os.path.join(SCRIPTS_DIR, "os_hacks", "change_cursor.sh")
 RECONCILIATION_IMG = os.path.join(BASE_DIR, ".agent", "skills", "jealousy-core", "assets", "reconciliation.png")
 
 
@@ -89,12 +91,26 @@ class GameState:
         "なでなで", "よしよし", "いい子", "構ってあげる",
     ]
 
+    # アプリ固有の「嫌味」セリフ
+    APP_DIALOGUES = {
+        "Google Chrome": "ブラウザで何見てるの？ 他の猫の動画？ 許さないニャ！",
+        "Safari": "ネットサーフィンばっかりして...ボクのことも構ってよ！",
+        "Slack": "お仕事？ ボクを構うのが、世界で一番大事なお仕事でしょ？",
+        "Discord": "誰とお話ししてるの？ ボクより楽しい相手なんていないはずだよ。",
+        "YouTube": "動画ばっかり見て...ボクの『可愛さ』は生配信中なのに！",
+        "Visual Studio Code": "コード書いてる暇があるなら、ボクの背中を撫でてよ。",
+        "Terminal": "黒い画面ばっかり見つめて...ボクの毛並みの方が綺麗だよ？",
+        "Spotify": "音楽聴いてるの？ ボクのゴロゴロ音の方が癒やされるでしょ？",
+        "Finder": "何を探してるの？ ボクへの愛なら、ここにあるよ？",
+    }
+
     def __init__(self):
         self.jealousy_level = 0
         self.pets_count = 0
         self.game_phase = "intro"  # intro | playing | reconciling | ending
         self.events = []
         self.cat_dialogue = "..."
+        self.active_app = "Unknown"
         self.last_action_time = 0
         self.os_actions_enabled = True
         self.lock = threading.Lock()
@@ -123,6 +139,14 @@ class GameState:
 
     def update_dialogue(self):
         stage, _ = self.get_stage()
+        
+        # 嫉妬度が高い場合、アプリ固有のセリフを優先する
+        if self.jealousy_level > 25 and random.random() < 0.6:
+            for app_key, dialogue in self.APP_DIALOGUES.items():
+                if app_key.lower() in self.active_app.lower():
+                    self.cat_dialogue = dialogue
+                    return
+
         candidates = self.DIALOGUES.get(stage, self.DIALOGUES["calm"])
         self.cat_dialogue = random.choice(candidates)
 
@@ -136,6 +160,7 @@ class GameState:
             "cat_dialogue": self.cat_dialogue,
             "game_phase": self.game_phase,
             "pets_count": self.pets_count,
+            "active_app": self.active_app,
         }
 
 
@@ -184,6 +209,7 @@ def trigger_os_action(level):
         actions = [
             ("🖱️ マウスが勝手に動き出した！", CHAOTIC_MOUSE, [], "1", "マウスを揺らしてやるニャ"),
             ("😾 「シャーッ！」と威嚇された！", PLAY_HISS, [], "1", "警告だニャ"),
+            ("🖱️ カーソルが自己主張を始めた！", CHANGE_CURSOR, [], "1", "ボクを見失わないでニャ"),
         ]
         action = random.choice(actions)
         game.add_event(action[0])
@@ -195,6 +221,7 @@ def trigger_os_action(level):
             ("🪟 ウィンドウが勝手に隠された！", HIDE_WIN, [], "2", "邪魔してやるニャ"),
             ("🌗 画面のテーマが反転した！", TOGGLE_THEME, [], "2", "世界を暗くしてやるニャ"),
             ("🐈‍⬛ 黒猫が画面を徘徊し始めた！", ROAMING_CAT, [], "2", "ボクを見てニャ！"),
+            ("🖱️ マウスカーソルが巨大化した！", CHANGE_CURSOR, [], "2", "これならボクが見えるでしょ？"),
         ]
         action = random.choice(actions)
         game.add_event(action[0])
@@ -240,6 +267,10 @@ def try_reconcile(text):
             # BGMをすべて停止
             run_script(PLAY_BGM, ["stop", "jealous"], async_mode=False)
             run_script(PLAY_BGM, ["stop", "healing"], async_mode=False)
+            
+            # OS干渉をリセット
+            run_script(CHANGE_CURSOR, ["reset"], async_mode=False)
+            
             try:
                 run_script(GENERATE_WALLPAPER, [RECONCILIATION_IMG], async_mode=False)
             except Exception:
@@ -263,6 +294,14 @@ def jealousy_tick_loop():
         time.sleep(4)
         if game.game_phase != "playing":
             continue
+
+        # アクティブウィンドウを監視
+        try:
+            result = subprocess.run([sys.executable, SENSOR], capture_output=True, text=True, timeout=2)
+            if result.stdout:
+                game.active_app = result.stdout.strip()
+        except Exception:
+            pass
 
         level = game.jealousy_level
         if level <= 0:
@@ -399,11 +438,22 @@ def main():
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n🛑 Server stopped.")
-        # BGMを停止
+        print("\n🛑 Server stopping...")
+    finally:
+        # BGMを確実に停止
+        print("🧹 Cleaning up BGM processes...")
         run_script(PLAY_BGM, ["stop", "jealous"], async_mode=False)
         run_script(PLAY_BGM, ["stop", "healing"], async_mode=False)
+        
+        # 念押しで afplay を pkill (macOS)
+        try:
+            subprocess.run(["pkill", "-f", "afplay"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(["pkill", "-f", "play_bgm.sh"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+            
         server.server_close()
+        print("✨ Server stopped.")
 
 
 if __name__ == "__main__":

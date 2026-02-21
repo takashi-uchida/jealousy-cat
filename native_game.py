@@ -173,11 +173,15 @@ class ProcessManager:
         nuke_patterns = [
             "play_bgm.sh", "afplay", "roaming_cat.py", 
             "menubar_app.py", "healing_cat_window.py", 
-            "live_reconciliation.py", "chaotic_mouse.swift"
+            "live_reconciliation.py", "chaotic_mouse.swift",
+            "overlay_effects.py", "reconcile_gui.py",
+            "active_window_sensor.py", "vision_sensor.py"
         ]
         for pattern in nuke_patterns:
             try:
-                subprocess.run(["pkill", "-f", pattern], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                # ユーザーの他プロセスを誤爆しないよう、可能な限りパスや文脈で絞り込むのが理想だが、
+                # ここでは確実に殺すことを優先
+                subprocess.run(["pkill", "-9", "-f", pattern], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             except Exception:
                 pass
         
@@ -186,6 +190,11 @@ class ProcessManager:
             pid_file = f"/tmp/jealousy_bgm_{mode}.pid"
             if os.path.exists(pid_file):
                 try:
+                    # PIDファイルが残っている場合はそのPIDも直接殺しに行く
+                    with open(pid_file, "r") as f:
+                        pid = f.read().strip()
+                        if pid.isdigit():
+                            subprocess.run(["kill", "-9", pid], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     os.remove(pid_file)
                 except Exception:
                     pass
@@ -431,12 +440,13 @@ def show_intro():
     display dialog "あなたのOSに嫉妬深い猫が住み着きました。
 
 🐱 Cat A (癒やし猫) — デスクトップに現れた無害な猫
-🐈‍⬛ Cat B (嫉妬猫) — OSに潜むシステム猫。嫉妬深い。
+🐈‍⬛ Cat B (嫉妬猫) — メニューバー（画面右上）に潜んで監視している猫
 
 Cat Aをナデナデ（クリック）すると...
 Cat Bが嫉妬してOSを乗っ取り始めます！
 
-猫をなだめて、ハッピーエンドを迎えましょう！" with title "🐈‍⬛ Jealousy.sys — 嫉妬するOS" buttons {"ゲーム開始！"} default button 1 with icon note
+猫をなだめて、ハッピーエンドを迎えましょう！
+（ヒント: 嫉妬が限界に来たら、素直な言葉で謝ると許してくれるかも？）" with title "🐈‍⬛ Jealousy.sys — 嫉妬するOS" buttons {"ゲーム開始！"} default button 1 with icon note
     '''
     try:
         subprocess.run(["osascript", "-e", script], check=True, timeout=60)

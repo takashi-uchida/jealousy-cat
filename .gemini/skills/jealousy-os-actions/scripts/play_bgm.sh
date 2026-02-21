@@ -16,17 +16,13 @@ BGM_PID_FILE="/tmp/jealousy_bgm_${MODE}.pid"
 if [ "$ACTION" == "stop" ]; then
     if [ -f "$BGM_PID_FILE" ]; then
         PID=$(cat "$BGM_PID_FILE")
-        # 該当PIDとその子プロセスをまとめてkill
-        # macOSではプロセスグループを消すために負の値を指定する手法が使えない場合があるため、
-        # pkill -P (parent PID) を先に実行する
-        pkill -P "$PID" 2>/dev/null
+        # 該当PIDとその子プロセスをkill
         kill -9 "$PID" 2>/dev/null
+        pkill -P "$PID" 2>/dev/null
         rm "$BGM_PID_FILE"
         echo "🛑 ${MODE} BGMを停止しました"
     fi
-    # afplayプロセスが残っている可能性を考慮して念押しで停止（このアプリで起動したもののみにしたいが、名前で判定）
-    # afplayはシステム提供のコマンドなので、他のアプリが使っている可能性もあるが、
-    # 開発環境やこのゲームの文脈では一括停止を優先する
+    # PIDファイルがなくても、afplayプロセスを名前で念のり止める
     pkill -f "afplay" 2>/dev/null || true
     exit 0
 fi
@@ -36,23 +32,16 @@ if [ "$ACTION" == "start" ]; then
     $0 stop "$MODE"
 
     if [ "$MODE" == "healing" ]; then
+        # 癒やし系WebアプリのBGMとして、macOS標準の穏やかな環境音や音色を生成してごまかす（外部mp3不要）
         echo "🎶 Healing BGMを開始します..."
         (
-            # 親プロセスが死んだら自分も死ぬように調整（簡易版）
             while true; do
                 osascript -e 'set volume output volume 30'
                 # 穏やかな鈴の音をゆっくり連続再生
-                for i in {1..3}; do 
-                    afplay /System/Library/Sounds/Glass.aiff &
-                    AF_PID=$!
-                    sleep 1
-                    kill $AF_PID 2>/dev/null
-                done
+                for i in {1..3}; do afplay /System/Library/Sounds/Glass.aiff; sleep 1; done
                 sleep 2
-                afplay /System/Library/Sounds/Tink.aiff &
-                AF_PID=$!
+                afplay /System/Library/Sounds/Tink.aiff
                 sleep 5
-                kill $AF_PID 2>/dev/null
             done
         ) &
         echo $! > "$BGM_PID_FILE"

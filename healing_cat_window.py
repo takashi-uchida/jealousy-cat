@@ -89,6 +89,24 @@ class HealingCatWindow:
         )
         self.canvas.pack(fill="both", expand=True)
 
+        # ─── 嫉妬ゲージ（背景） ───
+        self.gauge_bg = self.canvas.create_rectangle(
+            40, self.WINDOW_SIZE + 35, 
+            self.WINDOW_SIZE - 40, self.WINDOW_SIZE + 45,
+            fill="#444444", outline="", width=0
+        )
+        # ─── 嫉妬ゲージ（中身） ───
+        self.gauge_fill = self.canvas.create_rectangle(
+            40, self.WINDOW_SIZE + 35, 
+            40, self.WINDOW_SIZE + 45,
+            fill="#00FF00", outline="", width=0
+        )
+        # ─── 嫉妬ゲージ（ラベル） ───
+        self.gauge_label = self.canvas.create_text(
+            self.WINDOW_SIZE // 2, self.WINDOW_SIZE + 25,
+            text="Jealousy: 0%", font=("Arial", 9, "bold"), fill="white"
+        )
+
         # ─── 猫画像をロード ───
         self.cat_photo = None
         self.load_cat_image()
@@ -119,6 +137,9 @@ class HealingCatWindow:
         self.float_angle = 0.0
         self.is_purring = False
         self.purr_frames = 0
+        self.jump_y = 0.0
+        self.jump_vy = 0.0
+        self.original_img = None
 
         # ─── ドラッグ移動 ───
         self.drag_data = {"x": 0, "y": 0}
@@ -134,8 +155,15 @@ class HealingCatWindow:
         """猫画像を円形クリップ風にリサイズして読み込む"""
         try:
             img = Image.open(HEALING_CAT_IMG).convert("RGBA")
-            size = self.WINDOW_SIZE - 20
-            img = img.resize((size, size), Image.LANCZOS)
+            size = self.WINDOW_SIZE - 40 # 回転時に見切れないよう少し小さく
+
+            # Pillowのバージョン互換性対応
+            try:
+                resample_filter = Image.Resampling.LANCZOS
+            except AttributeError:
+                resample_filter = Image.LANCZOS
+
+            img = img.resize((size, size), resample_filter)
 
             # 円形マスクを適用
             mask = Image.new("L", (size, size), 0)
@@ -144,10 +172,13 @@ class HealingCatWindow:
             draw.ellipse([0, 0, size, size], fill=255)
             img.putalpha(mask)
 
+            self.original_img = img
             self.cat_photo = ImageTk.PhotoImage(img)
+            print("✅ 猫画像をロードしました")
         except Exception as e:
             print(f"⚠️ Could not load cat image: {e}")
             self.cat_photo = None
+            self.original_img = None
 
     def on_click(self, event):
         self.drag_data["x"] = event.x
@@ -172,6 +203,10 @@ class HealingCatWindow:
         self.pet_count += 1
         self.is_purring = True
         self.purr_frames = 20
+        
+        # ぴょんとジャンプ！
+        if self.jump_y == 0:
+            self.jump_vy = -12
 
         # 吹き出しを更新
         msg = random.choice(self.PURR_MESSAGES)
@@ -189,8 +224,39 @@ class HealingCatWindow:
 
     def animate(self):
         """毎フレームのアニメーション（浮遊 + パーティクル + 振動）"""
+        # 常に最前面を維持（ブラウザなどの裏に行かないように）
+        self.root.lift()
+        self.root.wm_attributes("-topmost", True)
+
         cx = self.WINDOW_SIZE // 2
         cy = self.WINDOW_SIZE // 2
+
+        # ─── ゲージ更新 ───
+        if self.game_state:
+            level = self.game_state.jealousy_level
+            # 0〜100% → 幅 0〜(WINDOW_SIZE-80)
+            max_w = self.WINDOW_SIZE - 80
+            current_w = max_w * (min(level, 100) / 100)
+            
+            # 色の変化: 緑 → 黄 → 赤
+            if level < 50:
+                color = "#00FF00" # Green
+            elif level < 80:
+                color = "#FFFF00" # Yellow
+            else:
+                color = "#FF0000" # Red
+            
+            self.canvas.coords(self.gauge_fill, 40, self.WINDOW_SIZE + 35, 40 + current_w, self.WINDOW_SIZE + 45)
+            self.canvas.itemconfig(self.gauge_fill, fill=color)
+            self.canvas.itemconfig(self.gauge_label, text=f"Jealousy: {int(level)}%")
+
+        # ─── 物理演算（ジャンプ） ───
+        if self.jump_y < 0 or self.jump_vy != 0:
+            self.jump_y += self.jump_vy
+            self.jump_vy += 1.5 # 重力
+            if self.jump_y >= 0:
+                self.jump_y = 0
+                self.jump_vy = 0
 
         # ─── 浮遊アニメーション ───
         self.float_angle += 0.05
@@ -205,8 +271,26 @@ class HealingCatWindow:
             if self.purr_frames <= 0:
                 self.is_purring = False
                 self.canvas.itemconfig(self.bubble_id, text="🐱 ナデナデしてね♪")
+        
+        # ─── 画像の回転（ゆらゆら） ───
+        if self.original_img:
+            tilt = math.sin(self.float_angle * 0.8) * 4 # ±4度
+            try:
+                # Pillowのバージョン互換性対応
+                try:
+                    resample_filter = Image.Resampling.BILINEAR
+                except AttributeError:
+                    resample_filter = Image.BILINEAR
+                
+                rotated = self.original_img.rotate(tilt, resample=resample_filter)
+                self.cat_photo = ImageTk.PhotoImage(rotated)
+                self.canvas.itemconfig(self.cat_id, image=self.cat_photo)
+            except Exception:
+                pass
 
-        self.canvas.coords(self.cat_id, cx + shake_x, cy + float_offset + shake_y)
+        # 座標更新（中心位置 + 浮遊 + ジャンプ + 振動）
+        total_y = cy + float_offset + self.jump_y + shake_y
+        self.canvas.coords(self.cat_id, cx + shake_x, total_y)
 
         # ─── パーティクル更新 ───
         self.particles = [p for p in self.particles if p.update()]
