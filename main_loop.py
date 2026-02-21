@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # main_loop.py
-# Jealousy.sys - Supervisor エージェントのメインループ
-# 時間経過や特定イベントに応じて嫉妬レベルをあがり、各レベルに応じたWorkerスクリプトを実行する
+# Jealousy.sys - Main Loop for Supervisor Agent
+# Increases jealousy level based on time or specific events and runs worker scripts for each level.
 
 import os
 import sys
@@ -10,7 +10,7 @@ import subprocess
 import random
 from datetime import datetime
 
-# 定数：スクリプトへのパス
+# Constants: Paths to scripts
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS_DIR = os.path.join(BASE_DIR, ".agent", "skills", "jealousy-core", "scripts")
 
@@ -35,12 +35,12 @@ CAT_POUNCE = os.path.join(SCRIPTS_DIR, "cat_pounce.swift")
 CAT_SCRATCH = os.path.join(SCRIPTS_DIR, "cat_scratch.py")
 JEALOUS_BROWSER = os.path.join(SCRIPTS_DIR, "jealous_browser_hijack.py")
 
-# 新しい OS Hacks 用のスクリプトパス
+# Scripts for OS Hacks
 TOGGLE_THEME = os.path.join(SCRIPTS_DIR, "os_hacks", "toggle_dark_mode.sh")
 TERMINAL_GHOST = os.path.join(SCRIPTS_DIR, "os_hacks", "terminal_ghost.sh")
 PLAY_BGM = os.path.join(SCRIPTS_DIR, "play_bgm.sh")
 
-# プロセス実行のラッパー関数
+# Wrapper function for process execution
 def run_worker(script_path, args=None, async_mode=False):
     if not os.path.exists(script_path):
         print(f"❌ [Error] Script not found: {script_path}")
@@ -48,9 +48,9 @@ def run_worker(script_path, args=None, async_mode=False):
 
     cmd = [script_path]
     
-    # 拡張子に応じて実行方法を判断
+    # Determine execution method based on extension
     if script_path.endswith(".py"):
-        cmd = [sys.executable, script_path] # 現在のPythonインタープリタを使う
+        cmd = [sys.executable, script_path] 
     
     if args:
         cmd.extend(args)
@@ -68,10 +68,10 @@ class JealousySupervisor:
     def __init__(self):
         self.jealousy_level = 0
         self.is_running = True
-        self.log("Jealousy.sys Supervisor started. Waiting for target (猫A)...")
+        self.log("Jealousy.sys Supervisor started. Waiting for target (Cat A)...")
 
     def check_active_window(self):
-        """センサーを使って現在アクティブなウィンドウ名を取得する"""
+        """Get the name of the currently active window using a sensor"""
         try:
             result = subprocess.run([sys.executable, SENSOR], capture_output=True, text=True, check=True)
             return result.stdout.strip()
@@ -79,7 +79,7 @@ class JealousySupervisor:
             return "Unknown"
 
     def check_vision_sensor(self):
-        """Vision APIセンサーを使って画面上に癒やし系猫がいるか判定し、結果を返す"""
+        """Determine if a cat is on screen using the Vision API sensor"""
         try:
             result = subprocess.run([sys.executable, VISION_SENSOR], capture_output=True, text=True, check=True)
             output = result.stdout.strip()
@@ -102,16 +102,16 @@ class JealousySupervisor:
 
     def increase_jealousy(self, amount):
         self.jealousy_level += amount
-        self.log(f"😡 嫉妬レベル上昇: {self.jealousy_level}/100")
+        self.log(f"😡 Jealousy level up: {self.jealousy_level}/100")
         self.check_thresholds()
 
     def check_thresholds(self):
-        """現在のレベルに応じてアクションをトリガーする"""
+        """Trigger actions based on the current jealousy level"""
         
         # Level 1: Annoyance
         if 20 <= self.jealousy_level < 50:
-            self.log("⚡ [Level 1: Annoyance] - マウスを揺らし、猫が追いかけ始める")
-            run_worker(CAT_TOAST, ["1", "こっち向いてニャ..."], async_mode=True)
+            self.log("⚡ [Level 1: Annoyance] - Mouse shakes, cat starts following")
+            run_worker(CAT_TOAST, ["1", "Look at me, meow..."], async_mode=True)
             run_worker(PLAY_BGM, ["start", "jealous"], async_mode=True)
             run_worker(FOLLOW_MOUSE_CAT, async_mode=True)
             run_worker(CHAOTIC_MOUSE, async_mode=True)
@@ -119,37 +119,37 @@ class JealousySupervisor:
             
         # Level 2: Obsession
         elif 50 <= self.jealousy_level < 80:
-            self.log("⚡ [Level 2: Obsession] - ウィンドウを不意に隠し、爪跡を残し、マウスを強奪する")
-            run_worker(CAT_TOAST, ["2", "ボクの爪跡、刻んでやるニャ！"], async_mode=True)
+            self.log("⚡ [Level 2: Obsession] - Hiding windows, scratch marks, mouse hijacking")
+            run_worker(CAT_TOAST, ["2", "I'll leave my marks, meow!"], async_mode=True)
             run_worker(CAT_SCRATCH, async_mode=True)
             run_worker(CAT_POUNCE, async_mode=True)
             run_worker(HIDE_WIN)
             run_worker(TOGGLE_THEME, async_mode=True)
             run_worker(ROAMING_CAT, async_mode=True)
             
-            # 20%の確率でブラウザをハイジャックする
+            # 20% chance to hijack the browser
             if random.random() < 0.2:
-                self.log("😼 [Obsession] - 浮気調査のためにブラウザを乗っ取ります...")
+                self.log("😼 [Obsession] - Hijacking browser for investigation...")
                 run_worker(JEALOUS_BROWSER, async_mode=True)
             
         # Level 3: Rage
         elif 80 <= self.jealousy_level < 100:
-            self.log("⚡ [Level 3: Rage] - メッセージタイピングと並行して、裏で不気味なターミナルを立ち上げる")
-            run_worker(CAT_TOAST, ["3", "もう我慢できないニャ...直接話す"], async_mode=True)
-            run_worker(TYPE_MSG, ["ボクだけを見て... お願いだから..."], async_mode=True)
+            self.log("⚡ [Level 3: Rage] - Typing messages and eerie terminal ghosting")
+            run_worker(CAT_TOAST, ["3", "I can't take this anymore, meow... talk to me!"], async_mode=True)
+            run_worker(TYPE_MSG, ["Look only at me... please..."], async_mode=True)
             run_worker(TERMINAL_GHOST, async_mode=True)
             
         # MAX (Hackathon Demo)
         elif self.jealousy_level >= 100:
-            self.log("⚡ [MAX: Danger] - 脅迫ダイアログを表示")
-            run_worker(CAT_TOAST, ["MAX", "限界ニャ...全てを終わらせる"], async_mode=True)
+            self.log("⚡ [MAX: Danger] - Displaying threat dialog")
+            run_worker(CAT_TOAST, ["MAX", "I'm at my limit, meow... it's all over"], async_mode=True)
             run_worker(THREATEN_PROC)
             
-            # デモ用：MAXに達したら和解イベントを発生させる
+            # For demo: trigger reconciliation when MAX is reached
             time.sleep(3)
-            self.log("🎤 [Reconciliation] - 音声対話 (Live API経由) を開始し、なだめを待機します...")
+            self.log("🎤 [Reconciliation] - Starting voice chat (via Live API) and waiting for soothing words...")
             
-            # subprocessで同期実行し、和解できたかチェック
+            # Synchronous execution via subprocess to check for success
             try:
                 result = subprocess.run([sys.executable, LIVE_RECONCILIATION], check=True)
                 reconciled = True
@@ -157,69 +157,65 @@ class JealousySupervisor:
                 reconciled = False
                 
             if reconciled:
-                self.log("🎨 生成AIで二匹のハッピーエンド壁紙を動的生成しています...")
-                # 壁紙生成スクリプトを実行し、画像を上書きする
+                self.log("🎨 Dynamically generating Happy Ending wallpaper via Generative AI...")
                 subprocess.run([sys.executable, GENERATE_WALLPAPER, RECONCILIATION_IMG])
                 
-                self.log("✨ [Reconciliation] - 仲直りの画像をデスクトップに設定します。")
+                self.log("✨ [Reconciliation] - Setting reconciled image to desktop.")
                 run_worker(SET_WALLPAPER, [RECONCILIATION_IMG])
                 
-                self.log("🛑 嫉妬が限界に達し、無事に和解しました。デモシナリオをリセットします。")
+                self.log("🛑 Jealousy peaked and successfully reconciled. Resetting demo scenario.")
                 self.jealousy_level = 0
-                run_worker(PLAY_BGM, ["stop", "jealous"]) # 嫉妬BGM停止
-                run_worker(PLAY_BGM, ["start", "healing"], async_mode=True) # ヒーリングBGM再開
+                run_worker(PLAY_BGM, ["stop", "jealous"])
+                run_worker(PLAY_BGM, ["start", "healing"], async_mode=True)
                 time.sleep(5) 
             else:
-                self.log("❌ 和解失敗...嫉妬レベルは下がりません。再試行を待ちます。")
+                self.log("❌ Reconciliation failed... jealousy level remains high.")
                 self.jealousy_level = 90
                 time.sleep(5) 
 
     def run_demo_scenario(self, use_sensor=False, use_vision=False):
         """
-        ハッカソンデモ用のタイムラインスクリプト
+        Timeline script for hackathon demo
         """
         if use_vision:
-            self.log("🎬 Visionセンサー連動デモ開始: 画面キャプチャとGemini APIでユーザーを監視します...")
+            self.log("🎬 Starting Vision-linked demo: Monitoring user via screen capture and Gemini API...")
         elif use_sensor:
-            self.log("🎬 センサー連動デモ開始: ユーザーが特定のアプリ（ブラウザや他ツール）に集中しているか監視します...")
+            self.log("🎬 Starting sensor-linked demo: Monitoring active app focus...")
         elif self.jealousy_level == 0:
             run_worker(PLAY_BGM, ["start", "healing"], async_mode=True)
-            self.log("🎬 タイムラインデモ開始: 自動的に嫉妬度が上昇します...")
+            self.log("🎬 Starting timeline demo: Jealousy level increases automatically...")
         
         try:
             while self.is_running:
-                time.sleep(3) # 監視間隔を少し短くする
+                time.sleep(3) 
                 
                 if use_vision:
                     is_cheating, reason = self.check_vision_sensor()
                     if is_cheating:
-                        self.log(f"👀 Vision判定 [浮気検知]: {reason}")
+                        self.log(f"👀 Vision Detection [Cheat detected]: {reason}")
                         self.increase_jealousy(15)
                     elif self.jealousy_level > 0:
-                        self.log("😌 Vision判定 [平和]: 猫（他のターゲット）は見ていないようです")
+                        self.log("😌 Vision Detection [Peaceful]: No other targets detected.")
                         self.jealousy_level = max(0, self.jealousy_level - 5)
                         time.sleep(2)
                 
-                # 嫉妬度が高い場合、たまにささやき声（音声）を出す
+                # Occasionally whisper when jealousy is high
                 if self.jealousy_level > 10 and random.random() < 0.3:
                     run_worker(WHISPER, [str(int(self.jealousy_level))], async_mode=True)
                 
                 elif use_sensor:
                     active_app = self.check_active_window()
-                    # ターミナル（実行画面）やエディタ以外のアプリを見ていると嫉妬が上がる
                     target_apps = ["Google Chrome", "Safari", "Slack", "Discord", "YouTube", "Healing Cat Interface", "Petting Cat"]
                     is_distracted = any(target in active_app for target in target_apps)
                     
                     if is_distracted:
-                        self.log(f"👀 ターゲティング: ユーザーが '{active_app}' に気を取られています！")
+                        self.log(f"👀 Targeting: User is distracted by '{active_app}'!")
                         self.increase_jealousy(15)
                     elif self.jealousy_level > 0:
-                        # ターミナル等に集中し直せば少し落ち着く
-                        self.log(f"😌 落ち着きを取り戻しています (現在のApp: {active_app})")
+                        self.log(f"😌 Regaining composure (Current App: {active_app})")
                         self.jealousy_level = max(0, self.jealousy_level - 5)
                         time.sleep(2)
                 else:
-                    # 従来の強制タイムライン進行
                     self.increase_jealousy(20)
                     time.sleep(2)
                 
@@ -227,18 +223,16 @@ class JealousySupervisor:
             self.log("🛑 Supervisor stopped by user.")
             self.is_running = False
         finally:
-            self.log("🧹 クリーンアップ中...")
-            # BGM停止
+            self.log("🧹 Cleaning up...")
             run_worker(PLAY_BGM, ["stop", "jealous"])
             run_worker(PLAY_BGM, ["stop", "healing"])
-            # 強制停止
             try:
                 subprocess.run(["pkill", "-f", "afplay"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 subprocess.run(["pkill", "-f", "roaming_cat.py"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 subprocess.run(["pkill", "-f", "follow_mouse_cat.py"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             except Exception:
                 pass
-            self.log("✨ クリーンアップ完了")
+            self.log("✨ Cleanup complete")
 
 if __name__ == "__main__":
     supervisor = JealousySupervisor()
@@ -251,6 +245,6 @@ if __name__ == "__main__":
         supervisor.run_demo_scenario(use_sensor=False, use_vision=True)
     else:
         print("💡 Usage:")
-        print("💡   python main_loop.py --demo         : 自動で嫉妬レベルが上がるデモ")
-        print("💡   python main_loop.py --sensor-demo  : アクティブウィンドウを監視して嫉妬するデモ")
-        print("💡   python main_loop.py --vision-demo  : 画面キャプチャとGemini Vision APIで猫への浮気を監視するデモ")
+        print("💡   python main_loop.py --demo         : Auto-escalation demo")
+        print("💡   python main_loop.py --sensor-demo  : Monitor active window demo")
+        print("💡   python main_loop.py --vision-demo  : Monitor screen with Gemini Vision demo")

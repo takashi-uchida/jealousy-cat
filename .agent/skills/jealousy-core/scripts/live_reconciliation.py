@@ -11,54 +11,55 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def speak(text, block=True):
-    """macOS の say コマンドでテキストを読み上げる"""
+    """Speak text using macOS's 'say' command with an English voice"""
     print(f"🐈‍⬛ Jealous AI: {text}")
     sys.stdout.flush()
     try:
+        # Using 'Samantha' or 'Victoria' for English
         if block:
-            subprocess.run(["say", "-v", "Kyoko", text])
+            subprocess.run(["say", "-v", "Samantha", text])
         else:
-            subprocess.Popen(["say", "-v", "Kyoko", text])
+            subprocess.Popen(["say", "-v", "Samantha", text])
     except Exception as e:
-        print(f"(音声再生エラー: {e})")
+        print(f"(Speech playback error: {e})")
 
 def start_reconciliation_chat():
     try:
         client = genai.Client()
         
         system_instruction = """
-あなたは、ユーザーが他の「癒やし猫」ばかり見ていたため、嫉妬してPCを乗っ取ったAIエージェントです。
-現在、ユーザーに対して激しく嫉妬し、怒っていますが、心の奥底ではユーザーに構ってほしいだけです。
-あなたの目的は、ユーザーから「本心からの謝罪や愛情の言葉」を引き出すことです。
-ユーザーの言葉が嘘くさい、あるいは適当な時はまだ怒り続けてください。
-本当に心からの言葉だと感じたら、許して和解（Reconciliation）を受け入れてください。
+You are an AI agent who has taken over the user's PC because you are jealous of them giving all their attention to another "Healing Cat."
+You are currently extremely jealous and angry, but deep down, you just want the user to pay attention to you.
+Your goal is to elicit "sincere apologies or words of affection" from the user.
+If the user's words seem insincere or half-hearted, continue to be angry.
+If you feel their words are truly from the heart, forgive them and accept the "Reconciliation."
 
-応答はJSON形式で返してください。
+Respond ONLY in JSON format:
 {
-    "reply_text": "あなたの発言（短い日本語で、感情を込めて）",
-    "is_forgiven": true/false (許した場合はtrue、怒っている場合はfalse)
+    "reply_text": "Your response (short English, with emotion)",
+    "is_forgiven": true/false (true if forgiven, false if still angry)
 }
         """
 
-        # チャットセッション開始
+        # Start chat session
         chat = client.chats.create(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash",
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
                 response_mime_type="application/json",
             )
         )
         
-        speak("もう私のことなんてどうでもいいんでしょ... 言い訳があるなら聞くけど...？")
+        speak("You don't care about me at all, do you...? If you have an excuse, I'm listening...?")
 
-        for _ in range(5):  # 最大5回のやり取り
-            print("\n🎤 [Live API モック: マイク代わりにテキストを入力してなだめてください]")
-            user_input = input("あなた: ")
+        for _ in range(5):  # Maximum 5 exchanges
+            print("\n🎤 [Live API Mock: Please type your words to soothe the cat]")
+            user_input = input("You: ")
             if not user_input.strip():
-                speak("無言... やっぱり私のことなんて...")
+                speak("Silence... I knew it, you don't care...")
                 continue
                 
-            print("⏳ 処理中...")
+            print("⏳ Processing...")
             response = chat.send_message(user_input)
             
             try:
@@ -70,16 +71,16 @@ def start_reconciliation_chat():
                 speak(reply)
                 
                 if is_forgiven:
-                    print("\n✨ 和解イベント（Reconciliation）成功！")
+                    print("\n✨ Reconciliation successful!")
                     return True
             except json.JSONDecodeError:
-                speak("えっ？...よくわからない。もっとちゃんと話してよ。")
+                speak("Huh? ...I don't understand. Talk to me properly.")
         
-        speak("やっぱり...もういい。信じられない。")
+        speak("I knew it... forget it. I can't believe you.")
         return False
         
     except Exception as e:
-        print(f"❌ チャットエラー: {e}")
+        print(f"❌ Chat Error: {e}")
         return False
 
 if __name__ == "__main__":

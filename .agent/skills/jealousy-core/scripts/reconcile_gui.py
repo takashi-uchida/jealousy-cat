@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # reconcile_gui.py
-# 和解用のGUIダイアログ (tkinter版)
-# 猫のイラスト付きで、ユーザーに謝罪を促す
+# GUI dialog for reconciliation (tkinter version)
+# Includes an illustration of the cat and prompts the user for an apology.
 
 import tkinter as tk
 from tkinter import messagebox
@@ -12,18 +12,18 @@ import time
 from PIL import Image, ImageTk
 
 RECONCILE_KEYWORDS = [
-    "好き", "大好き", "ごめん", "ごめんね", "すき", "一番",
-    "かわいい", "可愛い", "大切", "愛してる", "許して",
-    "ごめんなさい", "仲直り", "love", "sorry",
-    "なでなで", "よしよし", "いい子", "構ってあげる",
+    "love", "like", "sorry", "apologize", "pardon", "forgive",
+    "best", "number one", "cute", "adorable", "important",
+    "precious", "darling", "sweetheart", "honey", "pet",
+    "stroke", "attention", "care", "together", "reconcile",
 ]
 
 class ReconcileApp:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("Jealousy.sys — 和解交渉")
+        self.root.title("Jealousy.sys — Reconciliation Negotiation")
         
-        # 画面中央に配置
+        # Center on screen
         w, h = 500, 400
         sw = self.root.winfo_screenwidth()
         sh = self.root.winfo_screenheight()
@@ -33,22 +33,22 @@ class ReconcileApp:
         self.root.resizable(False, False)
         self.root.attributes("-topmost", True)
         
-        # 背景色（少し暗く）
+        # Background color
         self.root.configure(bg="#2C2C2C")
 
-        # 試行回数
+        # Number of attempts
         self.attempts = 3
 
-        # アイコン画像読み込み（あれば）
+        # Load icon image
         self.cat_img = None
         self.load_image()
 
-        # UI構築
+        # Build UI
         self.setup_ui()
 
     def load_image(self):
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        img_path = os.path.join(base_dir, "assets", "walking_black_cat.png") # 嫉妬猫の画像があればそれを使う
+        img_path = os.path.join(base_dir, "assets", "walking_black_cat.png")
         if not os.path.exists(img_path):
             img_path = os.path.join(base_dir, "assets", "system_cat_icon.png")
 
@@ -61,11 +61,11 @@ class ReconcileApp:
                 pass
 
     def setup_ui(self):
-        # メインフレーム
+        # Main Frame
         frame = tk.Frame(self.root, bg="#2C2C2C")
         frame.pack(expand=True, fill="both", padx=20, pady=20)
 
-        # 画像
+        # Image
         if self.cat_img:
             lbl_img = tk.Label(frame, image=self.cat_img, bg="#2C2C2C")
             lbl_img.pack(pady=(0, 10))
@@ -73,55 +73,54 @@ class ReconcileApp:
             lbl_img = tk.Label(frame, text="🐈‍⬛", font=("Arial", 60), bg="#2C2C2C", fg="white")
             lbl_img.pack(pady=(0, 10))
 
-        # メッセージ
+        # Message
         self.lbl_msg = tk.Label(
             frame, 
-            text="もう我慢できないニャ！\nボクのこと、どう思ってるの？\nちゃんと説明してよ！",
+            text="I can't take this anymore, meow!\nWhat do you think of me?\nExplain yourself!",
             font=("Helvetica", 14, "bold"),
             bg="#2C2C2C", fg="#FFD700",
             justify="center"
         )
         self.lbl_msg.pack(pady=10)
 
-        # 入力欄
+        # Entry Field
         self.entry = tk.Entry(frame, font=("Helvetica", 14), width=30)
         self.entry.pack(pady=10)
         self.entry.bind("<Return>", lambda e: self.check_reconcile())
         self.entry.focus_set()
         
-        # 強制フォーカス（macOSなどで後ろに行かないように）
         self.root.lift()
         self.root.focus_force()
         self.entry.focus_force()
 
-        # ヒント
+        # Hint
         self.lbl_hint = tk.Label(
             frame, 
-            text="（ヒント: 「好き」「ごめんね」など、素直な気持ちを伝えよう...）",
+            text="(Hint: Express your sincere feelings with words like 'love' or 'sorry'...)",
             font=("Helvetica", 10),
             bg="#2C2C2C", fg="#888888"
         )
         self.lbl_hint.pack(pady=(0, 10))
 
-        # ボタン
+        # Buttons
         btn_frame = tk.Frame(frame, bg="#2C2C2C")
         btn_frame.pack(pady=20)
 
         btn_submit = tk.Button(
-            btn_frame, text="送信", command=self.check_reconcile,
+            btn_frame, text="Send", command=self.check_reconcile,
             highlightbackground="#2C2C2C", font=("Helvetica", 12)
         )
         btn_submit.pack(side="left", padx=10)
 
         btn_cancel = tk.Button(
-            btn_frame, text="無視する", command=self.on_cancel,
+            btn_frame, text="Ignore", command=self.on_cancel,
             highlightbackground="#2C2C2C", font=("Helvetica", 12)
         )
         btn_cancel.pack(side="right", padx=10)
 
-        # 残り回数
+        # Remaining attempts
         self.lbl_status = tk.Label(
-            frame, text=f"残りチャンス: {self.attempts}回",
+            frame, text=f"Chances left: {self.attempts}",
             bg="#2C2C2C", fg="#AAAAAA", font=("Helvetica", 10)
         )
         self.lbl_status.pack(side="bottom")
@@ -144,28 +143,28 @@ class ReconcileApp:
         score = sum(1 for kw in RECONCILE_KEYWORDS if kw in text.lower())
 
         if score >= 1:
-            messagebox.showinfo("和解成功", f"「{text}」...？\nほんとに？\n\n...わかった、許してあげるニャ。", parent=self.root)
-            print(text) # 標準出力に結果を出して親プロセスに渡す
+            messagebox.showinfo("Reconciliation Successful", f"\"{text}\"...?\nReally?\n\n...Fine, I'll forgive you this time, meow.", parent=self.root)
+            print(text) 
             self.root.destroy()
-            sys.exit(0) # Success
+            sys.exit(0) 
         else:
             self.attempts -= 1
-            self.lbl_status.config(text=f"残りチャンス: {self.attempts}回")
+            self.lbl_status.config(text=f"Chances left: {self.attempts}")
             self.entry.delete(0, tk.END)
             self.shake_window()
             
             if self.attempts > 0:
                 msgs = [
-                    "全然気持ちがこもってないニャ！",
-                    "嘘つき！もっと本音で話して！",
-                    "それだけ？",
-                    "もっと褒めてよ！"
+                    "You don't mean that at all, meow!",
+                    "Liar! Tell me how you really feel!",
+                    "Is that all?",
+                    "Praise me more!"
                 ]
                 self.lbl_msg.config(text=random.choice(msgs), fg="#FF4444")
             else:
-                messagebox.showerror("交渉決裂", "もう知らない！\nプイッ！")
+                messagebox.showerror("Negotiation Failed", "I'm done with you!\nHmph!")
                 self.root.destroy()
-                sys.exit(1) # Failure
+                sys.exit(1) 
 
     def on_cancel(self):
         self.root.destroy()

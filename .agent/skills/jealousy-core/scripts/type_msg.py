@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # type_msg.py
-# 画面に不気味なメッセージをタイピング表示する（オーバーレイ版）
+# Types eerie messages on screen (Overlay version)
 
 import sys
 import subprocess
@@ -10,18 +10,18 @@ from dotenv import load_dotenv
 def get_jealous_cat_message():
     try:
         from google import genai
-        # プロジェクトルートの.envを読み込む
+        # Load .env from project root
         root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
         load_dotenv(os.path.join(root_dir, ".env"))
         
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
-            return "ボクのこと見てニャ... 他のとこ見ないで..."
+            return "Look at me, meow... don't look anywhere else..."
 
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents='あなたは構ってくれない飼い主に嫉妬している猫です。飼い主の注意を引くために、短く、少しヤンデレ気味な、でも可愛らしい猫語のメッセージを1〜2文で作成してください。「にゃ」「ニャ」などを付けてください。出力はメッセージ本文のみにしてください。'
+            model='gemini-2.0-flash',
+            contents='You are a cat jealous of your owner who is not giving you enough attention. Create a short, slightly yandere but cute cat-themed message in 1-2 sentences to grab the owner\'s attention. Use words like "meow" or "mew". Output only the message text.'
         )
         msg = response.text.strip(' \n"')
         if not msg:
@@ -29,10 +29,10 @@ def get_jealous_cat_message():
         return msg
     except Exception as e:
         print(f"Gemini API Error: {e}")
-        return "ボクだけを見て... 他の子ばっかり見ないでニャ..."
+        return "Look only at me... don't look at other cats, meow..."
 
 def type_message(msg):
-    print(f"📝 メッセージを表示します...: {msg}")
+    print(f"📝 Displaying message...: {msg}")
     script_dir = os.path.dirname(os.path.abspath(__file__))
     overlay_script = os.path.join(script_dir, "overlay_effects.py")
     
@@ -40,7 +40,7 @@ def type_message(msg):
         print(f"Error: {overlay_script} not found")
         return
 
-    # 非同期実行
+    # Asynchronous execution
     subprocess.Popen([sys.executable, overlay_script, "type", msg])
 
 if __name__ == "__main__":

@@ -136,7 +136,7 @@ class TypeMessageEffect(OverlayEffect):
             self.char_index += 1
             
             delay = random.randint(50, 150)
-            if char in ["、", "。", "...", "！"]:
+            if char in [",", ".", "...", "!", "?", ";"]:
                 delay += 300
             
             self.root.after(delay, self.type_next_char)

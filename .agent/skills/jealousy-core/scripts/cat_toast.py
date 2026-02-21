@@ -1,32 +1,32 @@
 #!/usr/bin/env python3
 # cat_toast.py
-# 猫が妨害を行ったことをユーザーに知らせるmacOS通知（トースト）を表示する
+# Displays macOS notifications (toasts) to inform the user that the cat has interfered.
 
 import sys
 import subprocess
 import random
 
-# レベルに応じた猫のセリフ（サブタイトル）
+# Cat's lines based on jealousy level (subtitles)
 LEVEL_SUBTITLES = {
     "1": [
-        "...チッ",
-        "ふーん、そっちが大事なんだ",
-        "ちょっとだけ、イタズラするニャ",
+        "...Tch.",
+        "Hmph, so that's what's important to you.",
+        "Just a little prank, meow.",
     ],
     "2": [
-        "ボクを無視するんだ？",
-        "ねぇ、こっち見てよ...",
-        "そろそろ本気出すニャ",
+        "Ignoring me, are you?",
+        "Hey, look at me...",
+        "I'm starting to get serious, meow.",
     ],
     "3": [
-        "もう我慢の限界ニャ...",
-        "どうして...ボクじゃダメなの？",
-        "最終警告だニャ",
+        "I'm at my limit, meow...",
+        "Why... why isn't it me for you?",
+        "Final warning, meow!",
     ],
     "MAX": [
-        "もう限界ニャ...",
-        "全部終わりにしてやるニャ",
-        "...さよなら",
+        "That's it, meow...",
+        "I'm going to end everything, meow.",
+        "...Goodbye.",
     ],
 }
 
@@ -44,5 +44,5 @@ def show_toast(level, body):
 
 if __name__ == "__main__":
     lvl = sys.argv[1] if len(sys.argv) > 1 else "1"
-    msg = sys.argv[2] if len(sys.argv) > 2 else "猫がイタズラしました"
+    msg = sys.argv[2] if len(sys.argv) > 2 else "The cat played a prank."
     show_toast(lvl, msg)

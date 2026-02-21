@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # menubar_app.py
-# メニューバーに嫉妬ゲージを表示する常駐アプリ
-# 別プロセスとして起動し、共有状態ファイル経由でゲーム状態を読み取る
+# Resident app that displays the jealousy gauge in the menu bar.
+# Runs as a separate process and reads game state via a shared JSON file.
 
 import os
 import sys
@@ -20,7 +20,7 @@ except ImportError:
 
 
 def read_game_state():
-    """共有状態ファイルからゲーム状態を読み取る"""
+    """Read game state from shared status file"""
     try:
         if os.path.exists(SHARED_STATE_FILE):
             with open(SHARED_STATE_FILE, "r") as f:
@@ -31,7 +31,7 @@ def read_game_state():
 
 
 class JealousyMenuBarApp(rumps.App):
-    """メニューバーに嫉妬ステータスを表示"""
+    """Display jealousy status in the menu bar"""
 
     STAGE_ICONS = {
         "calm":      "😺",
@@ -42,15 +42,15 @@ class JealousyMenuBarApp(rumps.App):
     }
 
     STAGE_NAMES = {
-        "calm":      "平穏",
-        "annoyance": "イライラ",
-        "obsession": "執着",
-        "rage":      "暴走",
-        "max":       "限界突破",
+        "calm":      "Calm",
+        "annoyance": "Annoyed",
+        "obsession": "Obsessed",
+        "rage":      "Raging",
+        "max":       "Critical",
     }
 
     def __init__(self):
-        # アイコン画像のパスを確認
+        # Check for icon image path
         self.icon_path = os.path.join(BASE_DIR, "assets", "system_cat_icon.png")
         if not os.path.exists(self.icon_path):
             self.icon_path = None
@@ -62,12 +62,12 @@ class JealousyMenuBarApp(rumps.App):
             quit_button=None,
         )
 
-        self.level_item = rumps.MenuItem("嫉妬レベル: ░░░░░░░░░░ 0%")
-        self.stage_item = rumps.MenuItem("ステージ: 😺 平穏")
-        self.pets_item = rumps.MenuItem("ナデナデ回数: 0 回")
-        self.pet_action_item = rumps.MenuItem("👋 ナデナデする", callback=self.on_pet)
-        self.reconcile_item = rumps.MenuItem("🐟 仲直りする", callback=self.on_reconcile)
-        self.quit_item = rumps.MenuItem("🛑 ゲーム終了", callback=self.on_quit)
+        self.level_item = rumps.MenuItem("Jealousy Level: ░░░░░░░░░░ 0%")
+        self.stage_item = rumps.MenuItem("Stage: 😺 Calm")
+        self.pets_item = rumps.MenuItem("Pets Count: 0 times")
+        self.pet_action_item = rumps.MenuItem("👋 Give attention", callback=self.on_pet)
+        self.reconcile_item = rumps.MenuItem("🐟 Make up", callback=self.on_reconcile)
+        self.quit_item = rumps.MenuItem("🛑 Quit Game", callback=self.on_quit)
 
         self.menu = [
             self.pet_action_item,
@@ -81,66 +81,66 @@ class JealousyMenuBarApp(rumps.App):
             self.quit_item,
         ]
         
-        # 起動時に自己主張する
+        # Self-assertion on launch
         rumps.notification(
             title="🐈‍⬛ Jealousy.sys",
-            subtitle="ここから見てるよ...",
-            message="嫉妬猫はメニューバーに潜んでいます。浮気したら許さないからね。",
+            subtitle="I'm watching you from here...",
+            message="The jealous cat is hiding in your menu bar. Don't even think about cheating.",
             sound=True
         )
 
     def on_pet(self, _):
-        """嫉妬猫をナデナデする"""
+        """Give attention to the jealous cat to lower jealousy"""
         state = read_game_state()
         level = state.get("jealousy_level", 0)
         
-        # 嫉妬レベルを下げる（機嫌をとる）
+        # Decrease jealousy level
         import random
         decrease = random.randint(3, 8)
         new_level = max(0, level - decrease)
         state["jealousy_level"] = new_level
         
-        # 状態保存
+        # Save state
         try:
             with open(SHARED_STATE_FILE, "w") as f:
                 json.dump(state, f)
         except Exception:
             pass
             
-        # 反応
+        # Reaction
         msgs = [
-            "ふん、悪くないわね。",
-            "もっと撫でなさいよ。",
-            "別に嬉しくないんだからね！",
-            "...ゴロゴロ...",
-            "浮気相手よりボクの方がいいでしょ？"
+            "Hmph, not bad.",
+            "Stroke me more.",
+            "It's not like I'm happy or anything!",
+            "...Purr...",
+            "I'm much better than that other cat, right?"
         ]
         msg = random.choice(msgs)
         
         rumps.notification(
             title="🐈‍⬛ Jealousy.sys",
-            subtitle="ナデナデしました",
+            subtitle="Gave attention",
             message=msg,
             sound=False
         )
 
     def on_reconcile(self, _):
-        """ユーザーが手動で和解を求めた場合"""
-        # フラグファイルを作成して native_game.py に通知
+        """User manually requests reconciliation"""
+        # Create flag file to notify native_game.py
         try:
             with open(RECONCILE_FLAG_FILE, "w") as f:
                 f.write("requested")
             rumps.notification(
                 title="🐈‍⬛ Jealousy.sys",
-                subtitle="アプローチ中...",
-                message="嫉妬猫に話しかけてみます...",
+                subtitle="Approaching...",
+                message="Attempting to talk to the jealous cat...",
                 sound=False
             )
         except Exception as e:
             print(f"Error creating reconcile flag: {e}")
 
     def on_quit(self, _):
-        # 終了シグナルを書き込み
+        # Set running flag to false to terminate main game
         try:
             state = read_game_state()
             state["is_running"] = False
@@ -152,30 +152,28 @@ class JealousyMenuBarApp(rumps.App):
 
     @rumps.timer(1)
     def update_display(self, _):
-        """1秒ごとにゲーム状態を読み取って表示を更新"""
+        """Read game state and update display every 1 second"""
         state = read_game_state()
         level = state.get("jealousy_level", 0)
         stage = state.get("stage", "calm")
         pets = state.get("pets_count", 0)
 
         emoji_icon = self.STAGE_ICONS.get(stage, "😺")
-        name = self.STAGE_NAMES.get(stage, "不明")
+        name = self.STAGE_NAMES.get(stage, "Unknown")
 
-        # メニューバータイトル
+        # Menu bar title
         if self.icon_path:
             self.title = f" {level}%"
-            # アイコンも更新したいが、rumpsでは画像を動的に変えるのは少し面倒。
-            # 一旦静的なアイコンを維持しつつ、もし画像がなければ絵文字を使う。
             self.icon = self.icon_path
         else:
             self.title = f"{emoji_icon} {level}%"
 
-        # メニュー項目
+        # Menu items
         filled = level // 10
         empty = 10 - filled
-        self.level_item.title = f"嫉妬レベル: {'█' * filled}{'░' * empty} {level}%"
-        self.stage_item.title = f"ステージ: {emoji_icon} {name}"
-        self.pets_item.title = f"ナデナデ回数: {pets} 回"
+        self.level_item.title = f"Jealousy: {'█' * filled}{'░' * empty} {level}%"
+        self.stage_item.title = f"Stage: {emoji_icon} {name}"
+        self.pets_item.title = f"Pets: {pets} times"
 
 
 if __name__ == "__main__":
